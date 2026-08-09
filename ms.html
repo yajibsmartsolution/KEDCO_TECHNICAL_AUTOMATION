@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feeder Analytics Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- pdfmake for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <style>
+        .sidebar {
+            width: 280px;
+            transition: all 0.3s ease;
+        }
+        .main-content {
+            margin-left: 280px;
+            transition: all 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 50;
+                height: 100vh;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark-mode {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        .dark-mode .card {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+        .dark-mode input, .dark-mode select, .dark-mode button {
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border-color: #718096;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .query-history-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .query-history-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .dark-mode .query-history-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .query-suggestion {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .query-suggestion:hover {
+            background-color: #f1f5f9;
+        }
+        .dark-mode .query-suggestion:hover {
+            background-color: #4a5568;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+        <div class="flex items-center">
+            <button id="sidebarToggle" class="md:hidden mr-4 text-white focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="text-2xl font-bold">Feeder Analytics Dashboard</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <input type="file" id="fileUpload" accept=".xlsx, .xls" class="hidden">
+                <label for="fileUpload" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded cursor-pointer text-white">Upload Excel File</label>
+            </div>
+            <button id="themeToggle" class="p-2 rounded-full bg-blue-700 hover:bg-blue-800">
+                <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white shadow-md p-4 fixed h-full overflow-y-auto">
+            <h2 class="text-xl font-semibold mb-4">Filters</h2>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">AI Query</h3>
+                <div class="relative">
+                    <input type="text" id="aiQuery" placeholder="Ask about your feeder data..." class="w-full p-2 border rounded">
+                    <button id="runQuery" class="absolute right-1 top-1 bg-blue-600 text-white p-1 rounded">Search</button>
+                </div>
+                <div id="querySuggestions" class="mt-2 bg-white border rounded shadow-md hidden">
+                    <!-- Query suggestions will be populated here -->
+                </div>
+                <div id="queryHistory" class="mt-2">
+                    <h4 class="font-medium mb-1">Recent Queries</h4>
+                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                        <!-- Query history will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">Feeder Name</h3>
+                <select id="feederFilter" class="w-full p-2 border rounded">
+                    <option value="">All Feeders</option>
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">Feeder Type</h3>
+                <select id="typeFilter" class="w-full p-2 border rounded">
+                    <option value="">All Types</option>
+                    <option value="11kV">11kV</option>
+                    <option value="33kV">33kV</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">Month Range</h3>
+                <div class="flex space-x-2">
+                    <select id="monthFrom" class="w-1/2 p-2 border rounded">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                    </select>
+                    <select id="monthTo" class="w-1/2 p-2 border rounded">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">Compare Feeders</h3>
+                <select id="compareFilter" multiple class="w-full p-2 border rounded h-32">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <button id="addComparison" class="mt-2 w-full bg-blue-600 text-white p-2 rounded">Add to Comparison</button>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-2">Export Options</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="exportExcel" class="bg-green-600 text-white p-2 rounded">Excel</button>
+                    <button id="exportCSV" class="bg-green-600 text-white p-2 rounded">CSV</button>
+                    <button id="exportPDF" class="bg-green-600 text-white p-2 rounded">PDF</button>
+                    <button id="printData" class="bg-green-600 text-white p-2 rounded">Print</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content p-6 w-full">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="card bg-white p-4 rounded shadow">
+                    <h3 class="text-lg font-semibold mb-2">Total Supplied Hours</h3>
+                    <p id="totalSupplied" class="text-3xl font-bold text-blue-600">0</p>
+                </div>
+                <div class="card bg-white p-4 rounded shadow">
+                    <h3 class="text-lg font-semibold mb-2">Average Compliance</h3>
+                    <p id="avgCompliance" class="text-3xl font-bold text-green-600">0%</p>
+                </div>
+                <div class="card bg-white p-4 rounded shadow">
+                    <h3 class="text-lg font-semibold mb-2">Number of Feeders</h3>
+                    <p id="feederCount" class="text-3xl font-bold text-purple-600">0</p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Visual Analytics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Feeder Share of Supplied Hours</h3>
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Daily Average Supply Comparison</h3>
+                        <div class="chart-container">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Monthly Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Multi-Feeder Comparison</h3>
+                        <div class="chart-container">
+                            <canvas id="stackedChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white p-4 rounded shadow">
+                <h2 class="text-xl font-semibold mb-4">Data Table</h2>
+                <div class="table-container overflow-x-auto">
+                    <table id="dataTable" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <!-- Columns will be populated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Rows will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let rawData = [];
+        let filteredData = [];
+        let comparedFeeders = [];
+        let currentCharts = {};
+        let isDarkMode = false;
+        let allFeeders = [];
+        let allTypes = [];
+
+        // DOM Elements
+        const fileUpload = document.getElementById('fileUpload');
+        const feederFilter = document.getElementById('feederFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const monthFrom = document.getElementById('monthFrom');
+        const monthTo = document.getElementById('monthTo');
+        const compareFilter = document.getElementById('compareFilter');
+        const addComparison = document.getElementById('addComparison');
+        const aiQuery = document.getElementById('aiQuery');
+        const runQuery = document.getElementById('runQuery');
+        const queryHistory = document.getElementById('queryHistory');
+        const querySuggestions = document.getElementById('querySuggestions');
+        const exportExcel = document.getElementById('exportExcel');
+        const exportCSV = document.getElementById('exportCSV');
+        const exportPDF = document.getElementById('exportPDF');
+        const printData = document.getElementById('printData');
+        const themeToggle = document.getElementById('themeToggle');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // File upload handling
+            fileUpload.addEventListener('change', handleFileUpload);
+            
+            // Filter event listeners
+            feederFilter.addEventListener('change', applyFilters);
+            typeFilter.addEventListener('change', applyFilters);
+            monthFrom.addEventListener('change', applyFilters);
+            monthTo.addEventListener('change', applyFilters);
+            
+            // Comparison functionality
+            addComparison.addEventListener('click', addToComparison);
+            
+            // AI Query handling
+            runQuery.addEventListener('click', processAIQuery);
+            aiQuery.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') processAIQuery();
+            });
+            
+            // Query suggestions
+            aiQuery.addEventListener('input', showQuerySuggestions);
+            aiQuery.addEventListener('focus', showQuerySuggestions);
+            document.addEventListener('click', function(e) {
+                if (!querySuggestions.contains(e.target) && e.target !== aiQuery) {
+                    querySuggestions.classList.add('hidden');
+                }
+            });
+            
+            // Export functionality
+            exportExcel.addEventListener('click', () => exportData('excel'));
+            exportCSV.addEventListener('click', () => exportData('csv'));
+            exportPDF.addEventListener('click', () => exportData('pdf'));
+            printData.addEventListener('click', printTable);
+            
+            // Theme toggle
+            themeToggle.addEventListener('click', toggleDarkMode);
+            
+            // Sidebar toggle for mobile
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+            
+            // Initialize charts with empty data
+            initializeCharts();
+            
+            // Add sample query suggestions
+            updateQuerySuggestions();
+        });
+
+        // Handle file upload and parsing
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Process each sheet (Jan-Aug)
+                rawData = [];
+                for (let i = 0; i < 8; i++) {
+                    const sheetName = workbook.SheetNames[i];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // Process the data (skip header row)
+                    for (let j = 1; j < jsonData.length; j++) {
+                        const row = jsonData[j];
+                        if (row.length < 10) continue; // Skip incomplete rows
+                        
+                        const feeder = {
+                            name: row[0] || '', // Feeder Name (previously Type)
+                            type: row[1] || '', // Feeder Type (previously Band)
+                            minHours: row[2] || 0,
+                            dailySupply: row.slice(3, 34), // Days 1-31
+                            suppliedHours: row[34] || 0,
+                            availableHours: row[35] || 0,
+                            compliance: row[36] || 0,
+                            dailyAverage: row[37] || 0,
+                            monthYear: sheetName // Using sheet name as month-year
+                        };
+                        
+                        rawData.push(feeder);
+                    }
+                }
+                
+                // Update filters and display
+                updateFilterOptions();
+                applyFilters();
+                
+                // Add to query history
+                addQueryToHistory(`Uploaded file: ${file.name}`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Update filter dropdowns based on loaded data
+        function updateFilterOptions() {
+            // Get unique feeder names
+            allFeeders = [...new Set(rawData.map(item => item.name))].filter(name => name);
+            allFeeders.sort();
+            
+            // Get unique feeder types
+            allTypes = [...new Set(rawData.map(item => item.type))].filter(type => type);
+            allTypes.sort();
+            
+            // Update feeder filter
+            feederFilter.innerHTML = '<option value="">All Feeders</option>';
+            allFeeders.forEach(name => {
+                feederFilter.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+            
+            // Update type filter
+            typeFilter.innerHTML = '<option value="">All Types</option>';
+            allTypes.forEach(type => {
+                typeFilter.innerHTML += `<option value="${type}">${type}</option>`;
+            });
+            
+            // Update comparison filter
+            compareFilter.innerHTML = '';
+            allFeeders.forEach(name => {
+                compareFilter.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+            
+            // Update query suggestions
+            updateQuerySuggestions();
+        }
+
+        // Update query suggestions based on available data
+        function updateQuerySuggestions() {
+            const suggestions = [
+                "Show supplied hours for BUK feeder from January to August",
+                "Compare compliance of 33kV feeders in February",
+                "List feeders with average supply below 5 hours in March",
+                "Show all 11kV feeders with compliance above 90%",
+                "Compare daily average supply for all feeders in April"
+            ];
+            
+            // Add suggestions based on available data
+            if (allFeeders.length > 0) {
+                suggestions.push(`Show supplied hours for ${allFeeders[0]} from ${monthFrom.options[monthFrom.selectedIndex].text} to ${monthTo.options[monthTo.selectedIndex].text}`);
+            }
+            
+            if (allTypes.length > 0) {
+                suggestions.push(`Compare ${allTypes[0]} feeders by daily average supply`);
+            }
+            
+            const suggestionsContainer = querySuggestions.querySelector('.space-y-1') || document.createElement('div');
+            suggestionsContainer.className = 'space-y-1 p-2';
+            suggestionsContainer.innerHTML = '';
+            
+            suggestions.forEach(suggestion => {
+                const div = document.createElement('div');
+                div.className = 'query-suggestion text-sm';
+                div.textContent = suggestion;
+                div.addEventListener('click', () => {
+                    aiQuery.value = suggestion;
+                    processAIQuery();
+                    querySuggestions.classList.add('hidden');
+                });
+                suggestionsContainer.appendChild(div);
+            });
+            
+            if (!querySuggestions.contains(suggestionsContainer)) {
+                querySuggestions.appendChild(suggestionsContainer);
+            }
+        }
+
+        // Show query suggestions
+        function showQuerySuggestions() {
+            if (aiQuery.value.trim() === '') {
+                querySuggestions.classList.remove('hidden');
+            } else {
+                querySuggestions.classList.add('hidden');
+            }
+        }
+
+        // Apply filters to data
+        function applyFilters() {
+            let result = [...rawData];
+            
+            // Filter by feeder name
+            const feederValue = feederFilter.value;
+            if (feederValue) {
+                result = result.filter(item => item.name === feederValue);
+            }
+            
+            // Filter by feeder type
+            const typeValue = typeFilter.value;
+            if (typeValue) {
+                result = result.filter(item => item.type === typeValue);
+            }
+            
+            // Filter by month range
+            const fromValue = monthFrom.value;
+            const toValue = monthTo.value;
+            const months = ['01', '02', '03', '04', '05', '06', '07', '08'];
+            const fromIndex = months.indexOf(fromValue);
+            const toIndex = months.indexOf(toValue);
+            
+            if (fromIndex !== -1 && toIndex !== -1) {
+                const selectedMonths = months.slice(fromIndex, toIndex + 1);
+                result = result.filter(item => {
+                    const monthNum = getMonthNumberFromName(item.monthYear);
+                    return selectedMonths.includes(monthNum);
+                });
+            }
+            
+            filteredData = result;
+            updateDisplay();
+        }
+
+        // Get month number from month name
+        function getMonthNumberFromName(monthName) {
+            const months = {
+                'january': '01', 'february': '02', 'march': '03', 'april': '04',
+                'may': '05', 'june': '06', 'july': '07', 'august': '08',
+                'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                'jun': '06', 'jul': '07', 'aug': '08'
+            };
+            
+            const normalizedName = monthName.toLowerCase().split(' ')[0];
+            return months[normalizedName] || '01';
+        }
+
+        // Get month name from number
+        function getMonthName(monthNumber) {
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            return months[parseInt(monthNumber) - 1] || '';
+        }
+
+        // Add selected feeders to comparison
+        function addToComparison() {
+            const selectedOptions = [...compareFilter.selectedOptions];
+            const feedersToAdd = selectedOptions.map(option => option.value);
+            
+            comparedFeeders = [...new Set([...comparedFeeders, ...feedersToAdd])];
+            updateComparisonCharts();
+            
+            // Add to query history
+            addQueryToHistory(`Compared feeders: ${feedersToAdd.join(', ')}`);
+        }
+
+        // Process AI query
+        function processAIQuery() {
+            const query = aiQuery.value.trim();
+            if (!query) return;
+            
+            // Reset filters first
+            feederFilter.value = '';
+            typeFilter.value = '';
+            monthFrom.value = '01';
+            monthTo.value = '08';
+            
+            // Simple query parsing (in a real app, this would use NLP)
+            const lowerQuery = query.toLowerCase();
+            
+            // Check for feeder name
+            let feederName = null;
+            for (const feeder of allFeeders) {
+                if (lowerQuery.includes(feeder.toLowerCase())) {
+                    feederName = feeder;
+                    break;
+                }
+            }
+            
+            // Check for feeder type
+            let feederType = null;
+            for (const type of allTypes) {
+                if (lowerQuery.includes(type.toLowerCase())) {
+                    feederType = type;
+                    break;
+                }
+            }
+            
+            // Check for time period
+            let timeFrom = '01';
+            let timeTo = '08';
+            
+            if (lowerQuery.includes('january') || lowerQuery.includes('jan')) {
+                timeFrom = '01';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '01';
+                }
+            }
+            if (lowerQuery.includes('february') || lowerQuery.includes('feb')) {
+                timeFrom = '02';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '02';
+                }
+            }
+            if (lowerQuery.includes('march') || lowerQuery.includes('mar')) {
+                timeFrom = '03';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '03';
+                }
+            }
+            if (lowerQuery.includes('april') || lowerQuery.includes('apr')) {
+                timeFrom = '04';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '04';
+                }
+            }
+            if (lowerQuery.includes('may')) {
+                timeFrom = '05';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '05';
+                }
+            }
+            if (lowerQuery.includes('june') || lowerQuery.includes('jun')) {
+                timeFrom = '06';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '06';
+                }
+            }
+            if (lowerQuery.includes('july') || lowerQuery.includes('jul')) {
+                timeFrom = '07';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '07';
+                }
+            }
+            if (lowerQuery.includes('august') || lowerQuery.includes('aug')) {
+                timeFrom = '08';
+                if (lowerQuery.includes('only') || !lowerQuery.includes('to')) {
+                    timeTo = '08';
+                }
+            }
+            
+            // Check for specific conditions
+            let conditionFilter = null;
+            if (lowerQuery.includes('below') || lowerQuery.includes('less than')) {
+                const match = query.match(/(\d+)\s*hours?/);
+                if (match) {
+                    const hours = parseFloat(match[1]);
+                    conditionFilter = item => item.dailyAverage < hours;
+                }
+            }
+            if (lowerQuery.includes('above') || lowerQuery.includes('more than') || lowerQuery.includes('greater than')) {
+                const match = query.match(/(\d+)\s*%/);
+                if (match) {
+                    const percent = parseFloat(match[1]);
+                    conditionFilter = item => item.compliance > percent;
+                }
+            }
+            
+            // Apply the parsed filters
+            if (feederName) feederFilter.value = feederName;
+            if (feederType) typeFilter.value = feederType;
+            if (timeFrom) monthFrom.value = timeFrom;
+            if (timeTo) monthTo.value = timeTo;
+            
+            applyFilters();
+            
+            // Apply condition filter if specified
+            if (conditionFilter) {
+                filteredData = filteredData.filter(conditionFilter);
+                updateDisplay();
+            }
+            
+            addQueryToHistory(query);
+            aiQuery.value = '';
+            querySuggestions.classList.add('hidden');
+        }
+
+        // Add query to history
+        function addQueryToHistory(query) {
+            const historyContainer = queryHistory.querySelector('.space-y-1');
+            const historyItem = document.createElement('div');
+            historyItem.className = 'query-history-item p-2 text-sm border-b';
+            historyItem.textContent = query;
+            historyItem.addEventListener('click', () => {
+                aiQuery.value = query;
+                processAIQuery();
+            });
+            
+            historyContainer.prepend(historyItem);
+            
+            // Keep only the last 5 queries
+            const items = historyContainer.querySelectorAll('.query-history-item');
+            if (items.length > 5) {
+                items[items.length - 1].remove();
+            }
+        }
+
+        // Update the display with filtered data
+        function updateDisplay() {
+            updateSummaryCards();
+            updateDataTable();
+            updateCharts();
+        }
+
+        // Update summary cards
+        function updateSummaryCards() {
+            if (filteredData.length === 0) {
+                document.getElementById('totalSupplied').textContent = '0';
+                document.getElementById('avgCompliance').textContent = '0%';
+                document.getElementById('feederCount').textContent = '0';
+                return;
+            }
+            
+            // Calculate total supplied hours
+            const totalSupplied = filteredData.reduce((sum, item) => sum + (item.suppliedHours || 0), 0);
+            document.getElementById('totalSupplied').textContent = totalSupplied.toFixed(2);
+            
+            // Calculate average compliance
+            const avgCompliance = filteredData.reduce((sum, item) => sum + (item.compliance || 0), 0) / filteredData.length;
+            document.getElementById('avgCompliance').textContent = `${avgCompliance.toFixed(2)}%`;
+            
+            // Count unique feeders
+            const uniqueFeeders = new Set(filteredData.map(item => item.name));
+            document.getElementById('feederCount').textContent = uniqueFeeders.size;
+        }
+
+        // Update data table
+        function updateDataTable() {
+            const table = document.getElementById('dataTable');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            
+            // Clear existing content
+            thead.innerHTML = '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>';
+            tbody.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                return;
+            }
+            
+            // Group data by month and feeder
+            const groupedData = {};
+            filteredData.forEach(item => {
+                const key = item.monthYear;
+                if (!groupedData[key]) {
+                    groupedData[key] = {};
+                }
+                groupedData[key][item.name] = item.dailySupply;
+            });
+            
+            // Create table headers (feeder names)
+            const feeders = Object.keys(groupedData[Object.keys(groupedData)[0]]);
+            feeders.forEach(feeder => {
+                const th = document.createElement('th');
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = feeder;
+                thead.appendChild(th);
+            });
+            
+            // Create table rows (days of month)
+            for (let day = 1; day <= 31; day++) {
+                const tr = document.createElement('tr');
+                
+                // Date cell
+                const dateCell = document.createElement('td');
+                dateCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                dateCell.textContent = `Day ${day}`;
+                tr.appendChild(dateCell);
+                
+                // Data cells for each feeder
+                feeders.forEach(feeder => {
+                    const td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                    
+                    // Find the value for this feeder and day
+                    let value = '';
+                    for (const month in groupedData) {
+                        if (groupedData[month][feeder] && groupedData[month][feeder][day - 1] !== undefined) {
+                            value = groupedData[month][feeder][day - 1];
+                            break;
+                        }
+                    }
+                    
+                    td.textContent = value !== undefined ? value : '';
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            }
+        }
+
+        // Initialize charts with empty data
+        function initializeCharts() {
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            const stackedCtx = document.getElementById('stackedChart').getContext('2d');
+            
+            currentCharts.pie = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['No data'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['#cccccc']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+            
+            currentCharts.bar = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['No data'],
+                    datasets: [{
+                        label: 'Daily Average',
+                        data: [0],
+                        backgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            currentCharts.line = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                    datasets: [{
+                        label: 'Supplied Hours',
+                        data: [0, 0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#3b82f6',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            currentCharts.stacked = new Chart(stackedCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                    datasets: [{
+                        label: 'No data',
+                        data: [0, 0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: '#cccccc'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with filtered data
+        function updateCharts() {
+            if (filteredData.length === 0) {
+                return;
+            }
+            
+            // Pie chart - Feeder share of supplied hours
+            const feederSupplied = {};
+            filteredData.forEach(item => {
+                if (!feederSupplied[item.name]) {
+                    feederSupplied[item.name] = 0;
+                }
+                feederSupplied[item.name] += item.suppliedHours;
+            });
+            
+            currentCharts.pie.data.labels = Object.keys(feederSupplied);
+            currentCharts.pie.data.datasets[0].data = Object.values(feederSupplied);
+            currentCharts.pie.data.datasets[0].backgroundColor = generateColors(Object.keys(feederSupplied).length);
+            currentCharts.pie.update();
+            
+            // Bar chart - Daily average comparison
+            const feederAverages = {};
+            filteredData.forEach(item => {
+                if (!feederAverages[item.name]) {
+                    feederAverages[item.name] = 0;
+                }
+                feederAverages[item.name] = item.dailyAverage;
+            });
+            
+            currentCharts.bar.data.labels = Object.keys(feederAverages);
+            currentCharts.bar.data.datasets[0].data = Object.values(feederAverages);
+            currentCharts.bar.data.datasets[0].backgroundColor = generateColors(Object.keys(feederAverages).length);
+            currentCharts.bar.update();
+            
+            // Line chart - Monthly trend
+            const monthlyData = {};
+            filteredData.forEach(item => {
+                const month = item.monthYear.substring(0, 3);
+                if (!monthlyData[month]) {
+                    monthlyData[month] = 0;
+                }
+                monthlyData[month] += item.suppliedHours;
+            });
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+            const monthlyValues = months.map(month => monthlyData[month] || 0);
+            
+            currentCharts.line.data.datasets[0].data = monthlyValues;
+            currentCharts.line.update();
+        }
+
+        // Update comparison charts
+        function updateComparisonCharts() {
+            if (comparedFeeders.length === 0) {
+                return;
+            }
+            
+            // Prepare data for stacked chart
+            const monthlyData = {};
+            comparedFeeders.forEach(feeder => {
+                monthlyData[feeder] = Array(8).fill(0);
+            });
+            
+            filteredData.forEach(item => {
+                if (comparedFeeders.includes(item.name)) {
+                    const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']
+                        .indexOf(item.monthYear.substring(0, 3));
+                    if (monthIndex !== -1) {
+                        monthlyData[item.name][monthIndex] += item.suppliedHours;
+                    }
+                }
+            });
+            
+            // Update stacked chart
+            currentCharts.stacked.data.datasets = comparedFeeders.map((feeder, index) => {
+                return {
+                    label: feeder,
+                    data: monthlyData[feeder],
+                    backgroundColor: generateColors(comparedFeeders.length)[index]
+                };
+            });
+            
+            currentCharts.stacked.update();
+        }
+
+        // Generate random colors for charts
+        function generateColors(count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 360 / count) % 360;
+                colors.push(`hsl(${hue}, 70%, 60%)`);
+            }
+            return colors;
+        }
+
+        // Export data in various formats
+        function exportData(format) {
+            if (filteredData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            if (format === 'excel') {
+                // Prepare worksheet
+                const ws = XLSX.utils.json_to_sheet(filteredData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Feeder Data');
+                XLSX.writeFile(wb, 'feeder_data.xlsx');
+            } else if (format === 'csv') {
+                // Convert to CSV
+                const headers = Object.keys(filteredData[0]).join(',');
+                const rows = filteredData.map(item => 
+                    Object.values(item).map(value => 
+                        typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+                    ).join(',')
+                );
+                const csv = [headers, ...rows].join('\n');
+                
+                // Download
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'feeder_data.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            } else if (format === 'pdf') {
+                // Simple PDF export (in a real app, this would be more sophisticated)
+                const docDefinition = {
+                    content: [
+                        { text: 'Feeder Data Report', style: 'header' },
+                        {
+                            table: {
+                                headerRows: 1,
+                                body: [
+                                    Object.keys(filteredData[0]),
+                                    ...filteredData.map(item => Object.values(item))
+                                ]
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            margin: [0, 0, 0, 10]
+                        }
+                    }
+                };
+                
+                pdfMake.createPdf(docDefinition).download('feeder_data.pdf');
+            }
+            
+            // Add to query history
+            addQueryToHistory(`Exported data as ${format.toUpperCase()}`);
+        }
+
+        // Print table
+        function printTable() {
+            const printContent = document.getElementById('dataTable').outerHTML;
+            const originalContent = document.body.innerHTML;
+            
+            document.body.innerHTML = printContent;
+            window.print();
+            document.body.innerHTML = originalContent;
+            
+            // Add to query history
+            addQueryToHistory('Printed data table');
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode');
+            
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            
+            if (isDarkMode) {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+            
+            // Add to query history
+            addQueryToHistory(`Switched to ${isDarkMode ? 'dark' : 'light'} mode`);
+        }
+    </script>
+</body>
+</html>

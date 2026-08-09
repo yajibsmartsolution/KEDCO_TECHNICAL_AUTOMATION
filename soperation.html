@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KEDCO Dispatch — Outage Approval System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #041a2a;
+      --panel: #062a40;
+      --gold: #ffd44d;
+      --text: #eef6ff;
+      --muted: #a0b8d0;
+      --accent: #13b3d0;
+      --primary: #13b3d0;
+      --secondary: #062a40;
+      --danger: #e74c3c;
+      --warning: #f39c12;
+      --success: #2ecc71;
+      --info: #3498db;
+      --radius: 14px;
+      --shadow: 0 12px 30px rgba(0,0,0,.45);
+      --chart-1: #13b3d0;
+      --chart-2: #ffd44d;
+      --chart-3: #2ecc71;
+      --chart-4: #e74c3c;
+      --chart-5: #9b59b6;
+      --chart-6: #3498db;
+    }
+
+    body.dark-mode {
+      --bg: #000c18;
+      --panel: #021828;
+      --text: #ffffff;
+      --muted: #8a9fb8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Inter', system-ui, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #031018);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    .container {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      background: linear-gradient(90deg, var(--panel), #052030);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      gap: 12px;
+      z-index: 1000;
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .top-left .logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      background: conic-gradient(from 150deg, var(--gold), #fff2b0);
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    }
+
+    .top-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .logout-btn {
+      background: linear-gradient(90deg, var(--danger), #ff6b6b);
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    /* MAIN LAYOUT */
+    .app {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      padding: 22px;
+    }
+
+    /* SIDEBAR */
+    aside {
+      background: linear-gradient(180deg, var(--panel), #041828);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.03);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 20px;
+      height: calc(100vh - 140px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      font-size: 16px;
+      margin: 0;
+      color: var(--gold);
+    }
+
+    nav {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.03);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(90deg, rgba(255,212,77,.06), rgba(19,179,208,.03));
+      border-color: rgba(255,212,77,.12);
+      font-weight: 600;
+    }
+
+    .nav-ic {
+      width: 24px;
+      text-align: center;
+      font-size: 1.1em;
+    }
+
+    .sidebar-foot {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* MAIN CONTENT */
+    main {
+      padding: 6px 0;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-badge {
+      background: var(--gold);
+      color: #05210d;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .clock {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-box {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,0.1);
+      color: var(--text);
+      font-size: 14px;
+      width: 260px;
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: linear-gradient(90deg, var(--accent), #2ed8f0);
+      color: #05210d;
+      font-weight: 700;
+    }
+
+    .btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    /* GRID & CARDS */
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .cards {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.04);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .kpi {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    /* CHARTS CONTAINER */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      padding: 15px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.04);
+      box-shadow: var(--shadow);
+    }
+
+    .chart-title {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* TABLES */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 700;
+      background: rgba(255,255,255,.02);
+    }
+
+    .status {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .status.ok {
+      background: rgba(46,204,113,.12);
+      color: #8ef0b9;
+    }
+
+    .status.warn {
+      background: rgba(243,156,18,.12);
+      color: #ffe9a8;
+    }
+
+    .status.bad {
+      background: rgba(231,76,60,.12);
+      color: #ffb1ac;
+    }
+
+    .status.info {
+      background: rgba(52,152,219,.12);
+      color: #a0e8f0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill.approve {
+      background: rgba(46,204,113,.12);
+      color: var(--success);
+    }
+
+    .pill.reject {
+      background: rgba(231,76,60,.12);
+      color: var(--danger);
+    }
+
+    footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 1100px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      .app {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        position: relative;
+        height: auto;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .app {
+        padding: 12px;
+      }
+      .top-header {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .search-box {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="light-mode">
+  <div class="container">
+    <!-- TOP HEADER -->
+    <div class="top-header">
+      <div class="top-left">
+        <div class="logo"></div>
+        <div>
+          <div style="font-weight:700;color:var(--muted);font-size:12px">Kano Electricity Distribution Company</div>
+          <h2>KEDCO Dispatch — Central Control Room</h2>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="topClock" class="clock"></div>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div class="app">
+      <!-- SIDEBAR -->
+      <aside>
+        <div class="brand">
+          <div class="logo" style="width:36px;height:36px"></div>
+          <h1>Head of System Operation & Dispatch</h1>
+        </div>
+        <nav>
+          <button class="nav-btn active" data-target="overview"><span class="nav-ic">🏠</span> Overview</button>
+          <button class="nav-btn" data-target="outage-approval"><span class="nav-ic">⚡</span> Outage Approval</button>
+          <button class="nav-btn" data-target="feeder-status"><span class="nav-ic">📊</span> Feeder Status</button>
+          <button class="nav-btn" data-target="scada"><span class="nav-ic">🛰️</span> SCADA & Alarms</button>
+          <button class="nav-btn" data-target="switching"><span class="nav-ic">🔄</span> Switching Orders</button>
+          <div style="height:12px"></div>
+          <button class="nav-btn" id="toggleSound"><span class="nav-ic">🔊</span> Sound: ON</button>
+          <button class="nav-btn" id="simulateEvents"><span class="nav-ic">🧪</span> Simulate New Outage</button>
+        </nav>
+        <div class="sidebar-foot">
+          © <span id="year"></span> KEDCO<br>
+          
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main>
+        <header>
+          <div class="hdr-left">
+            <div class="live-badge">LIVE</div>
+            <div>
+              <div style="font-weight:800">System Operation & Dispatch — Real-Time Control</div>
+              <div id="clock" class="clock">—</div>
+            </div>
+          </div>
+          <div class="controls">
+            <input type="text" id="globalSearch" placeholder="Search (Req#, Feeder, Region)" class="search-box" />
+            <button class="btn primary" id="btnNewOutage">+ New Outage Request</button>
+          </div>
+        </header>
+
+        <!-- OVERVIEW -->
+        <section id="overview" class="view">
+          <div class="grid cards">
+            <div class="card">
+              <div class="muted">Active Outages</div>
+              <div class="kpi" id="kpiOutages">—</div>
+            </div>
+            <div class="card">
+              <div class="muted">Pending Approvals</div>
+              <div class="kpi" id="kpiPending">—</div>
+            </div>
+            <div class="card">
+              <div class="muted">Network Uptime</div>
+              <div class="kpi" id="kpiUptime">—</div>
+            </div>
+          </div>
+          
+          <!-- CHARTS SECTION -->
+          <div class="charts-grid">
+            <div class="chart-container">
+              <div class="chart-title">Outage Type Distribution</div>
+              <canvas id="outageTypeChart"></canvas>
+            </div>
+            <div class="chart-container">
+              <div class="chart-title">Outage Risk Levels</div>
+              <canvas id="riskLevelChart"></canvas>
+            </div>
+            <div class="chart-container">
+              <div class="chart-title">Regional Outage Distribution</div>
+              <canvas id="regionalChart"></canvas>
+            </div>
+            <div class="chart-container">
+              <div class="chart-title">Outage Duration Analysis</div>
+              <canvas id="durationChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="card" style="margin-top:20px">
+            <div class="muted">Recent Outage Requests</div>
+            <table id="tblRecentOutages">
+              <thead>
+                <tr>
+                  <th>Req#</th>
+                  <th>Feeder</th>
+                  <th>Type</th>
+                  <th>Start</th>
+                  <th>Duration</th>
+                  <th>Reason</th>
+                  <th>Region</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- OUTAGE APPROVAL -->
+        <section id="outage-approval" class="view" style="display:none">
+          <div class="card">
+            <div class="muted">Outage Requests (Approve/Reject 33kV/11kV)</div>
+            <table id="tblOutage">
+              <thead>
+                <tr>
+                  <th>Req#</th>
+                  <th>Feeder</th>
+                  <th>Type</th>
+                  <th>Start</th>
+                  <th>Duration</th>
+                  <th>Reason</th>
+                  <th>Region</th>
+                  <th>Critical Load?</th>
+                  <th>Risk</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- FEEDER STATUS -->
+        <section id="feeder-status" class="view" style="display:none">
+          <div class="card">
+            <div class="muted">Real-Time Feeder Status</div>
+            <table id="tblFeeders">
+              <thead>
+                <tr>
+                  <th>Feeder</th>
+                  <th>Voltage (kV)</th>
+                  <th>Current (A)</th>
+                  <th>Load (%)</th>
+                  <th>Status</th>
+                  <th>Last Update</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SCADA & ALARMS -->
+        <section id="scada" class="view" style="display:none">
+          <div class="card">
+            <div class="muted">SCADA Alarms & Events</div>
+            <table id="tblAlarms">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Location</th>
+                  <th>Alarm</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SWITCHING ORDERS -->
+        <section id="switching" class="view" style="display:none">
+          <div class="card">
+            <div class="muted">Switching Orders (Execute/Log)</div>
+            <table id="tblSwitch">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Feeder</th>
+                  <th>Action</th>
+                  <th>Operator</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer>
+          KEDCO System Operation — Head of Dispatch Dashboard • Real-time data • <span id="footerTime"></span>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // === HELPERS ===
+      const $ = (s, ctx = document) => ctx.querySelector(s);
+      const $$ = (s, ctx = document) => Array.from(ctx.querySelectorAll(s));
+      const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const chance = p => Math.random() < p;
+      const uid = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+      const now = () => {
+        const d = new Date();
+        return d.getHours().toString().padStart(2, '0') + ':' +
+               d.getMinutes().toString().padStart(2, '0');
+      };
+
+      // === STATE ===
+      const state = {
+        sound: true,
+        outages: [],
+        alarms: [],
+        switching: [],
+        feeders: [],
+        teams: [],
+        approvals: { OUTAGE: [] }
+      };
+
+      // === STATIC DATA ===
+      const feeders = ['Kumbotso 11kV', 'Dawanau 11kV', 'Gidan Murtala 33kV', 'Zaria Road 11kV', 'Hotoro 11kV', 'Bichi 33kV'];
+      const regions = ['Kano Central', 'Katsina', 'Jigawa', 'Dutse', 'Bichi East', 'Dambatta'];
+      const reasons = [
+        'Planned Maintenance',
+        'Fault Repair',
+        'Load Balancing',
+        'Vegetation Trimming',
+        'Meter Replacement',
+        'Transformer Oil Change'
+      ];
+      const types = ['Planned', 'Emergency'];
+      const criticalLoads = ['AKTH', 'KEDCO HQ', 'Water Pumping Station', 'Traffic Lights', 'Police Station'];
+
+      // Chart instances
+      let outageTypeChart, riskLevelChart, regionalChart, durationChart;
+
+      // === INITIALIZE CHARTS ===
+      function initCharts() {
+        // Outage Type Distribution Chart (Pie)
+        const typeCtx = document.getElementById('outageTypeChart').getContext('2d');
+        outageTypeChart = new Chart(typeCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Planned', 'Emergency'],
+            datasets: [{
+              data: [70, 30],
+              backgroundColor: [varToRgba('--chart-1', 0.8), varToRgba('--chart-4', 0.8)],
+              borderColor: [varToRgba('--chart-1', 1), varToRgba('--chart-4', 1)],
+              borderWidth: 2,
+              hoverOffset: 15
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--text'),
+                  font: {
+                    size: 12
+                  }
+                }
+              }
+            },
+            cutout: '60%',
+            animation: {
+              animateScale: true,
+              animateRotate: true
+            }
+          }
+        });
+
+        // Risk Level Chart (Bar)
+        const riskCtx = document.getElementById('riskLevelChart').getContext('2d');
+        riskLevelChart = new Chart(riskCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Low', 'Medium', 'High'],
+            datasets: [{
+              label: 'Outage Count',
+              data: [12, 8, 5],
+              backgroundColor: [
+                varToRgba('--chart-3', 0.8),
+                varToRgba('--chart-2', 0.8),
+                varToRgba('--chart-4', 0.8)
+              ],
+              borderColor: [
+                varToRgba('--chart-3', 1),
+                varToRgba('--chart-2', 1),
+                varToRgba('--chart-4', 1)
+              ],
+              borderWidth: 1,
+              borderRadius: 6,
+              hoverBackgroundColor: [
+                varToRgba('--chart-3', 1),
+                varToRgba('--chart-2', 1),
+                varToRgba('--chart-4', 1)
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)'
+                },
+                ticks: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--muted')
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--muted')
+                }
+              }
+            }
+          }
+        });
+
+        // Regional Distribution Chart (Polar Area)
+        const regionalCtx = document.getElementById('regionalChart').getContext('2d');
+        regionalChart = new Chart(regionalCtx, {
+          type: 'polarArea',
+          data: {
+            labels: regions,
+            datasets: [{
+              data: [15, 12, 10, 8, 7, 5],
+              backgroundColor: [
+                varToRgba('--chart-1', 0.7),
+                varToRgba('--chart-2', 0.7),
+                varToRgba('--chart-3', 0.7),
+                varToRgba('--chart-4', 0.7),
+                varToRgba('--chart-5', 0.7),
+                varToRgba('--chart-6', 0.7)
+              ],
+              borderColor: [
+                varToRgba('--chart-1', 1),
+                varToRgba('--chart-2', 1),
+                varToRgba('--chart-3', 1),
+                varToRgba('--chart-4', 1),
+                varToRgba('--chart-5', 1),
+                varToRgba('--chart-6', 1)
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--text'),
+                  font: {
+                    size: 11
+                  }
+                }
+              }
+            },
+            animation: {
+              animateRotate: true,
+              animateScale: true
+            }
+          }
+        });
+
+        // Duration Analysis Chart (Line)
+        const durationCtx = document.getElementById('durationChart').getContext('2d');
+        durationChart = new Chart(durationCtx, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+              label: 'Avg. Outage Duration (hrs)',
+              data: [2.5, 3.2, 2.8, 1.9, 2.1, 1.7, 1.5, 2.3, 2.7, 2.9, 3.1, 2.4],
+              fill: true,
+              backgroundColor: 'rgba(19, 179, 208, 0.1)',
+              borderColor: varToRgba('--chart-1', 1),
+              tension: 0.4,
+              pointBackgroundColor: varToRgba('--chart-1', 1),
+              pointBorderColor: '#fff',
+              pointRadius: 5,
+              pointHoverRadius: 7
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--text')
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)'
+                },
+                ticks: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--muted')
+                }
+              },
+              x: {
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)'
+                },
+                ticks: {
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--muted')
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Helper function to convert CSS variable to RGBA
+      function varToRgba(variable, alpha) {
+        const hex = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+        let r = 0, g = 0, b = 0;
+        
+        if (hex.length === 4) {
+          r = parseInt(hex[1] + hex[1], 16);
+          g = parseInt(hex[2] + hex[2], 16);
+          b = parseInt(hex[3] + hex[3], 16);
+        } else if (hex.length === 7) {
+          r = parseInt(hex[1] + hex[2], 16);
+          g = parseInt(hex[3] + hex[4], 16);
+          b = parseInt(hex[5] + hex[6], 16);
+        }
+        
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      // === UPDATE CHARTS ===
+      function updateCharts() {
+        // Simulate updating chart data with random variations
+        if (outageTypeChart) {
+          const planned = rand(60, 80);
+          outageTypeChart.data.datasets[0].data = [planned, 100 - planned];
+          outageTypeChart.update();
+        }
+        
+        if (riskLevelChart) {
+          riskLevelChart.data.datasets[0].data = [
+            rand(10, 15),
+            rand(5, 10),
+            rand(3, 7)
+          ];
+          riskLevelChart.update();
+        }
+        
+        if (regionalChart) {
+          regionalChart.data.datasets[0].data = regions.map(() => rand(5, 20));
+          regionalChart.update();
+        }
+        
+        if (durationChart) {
+          durationChart.data.datasets[0].data = 
+            durationChart.data.datasets[0].data.map(value => 
+              Math.max(0.5, Math.min(4, value + (Math.random() - 0.5) * 0.3))
+            );
+          durationChart.update();
+        }
+      }
+
+      // === CLOCK ===
+      function tick() {
+        const time = new Date().toLocaleString();
+        $('#clock').textContent = time;
+        $('#topClock').textContent = time;
+        $('#footerTime').textContent = time;
+      }
+      setInterval(tick, 1000);
+      tick();
+      $('#year').textContent = new Date().getFullYear();
+
+      // === NAVIGATION ===
+      $$('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $$('.nav-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          $$('.view').forEach(v => v.style.display = 'none');
+          $(`#${btn.dataset.target}`).style.display = '';
+        });
+      });
+
+      // === LOGOUT FUNCTIONALITY ===
+      $('#logoutBtn').addEventListener('click', () => {
+        // Show confirmation dialog
+        if (confirm('Are you sure you want to logout?')) {
+          // Redirect to index.html
+          window.location.href = 'index.html';
+        }
+      });
+
+      // === SOUND TOGGLE ===
+      $('#toggleSound').addEventListener('click', () => {
+        state.sound = !state.sound;
+        $('#toggleSound').innerHTML = `${state.sound ? '🔊' : '🔇'} Sound: ${state.sound ? 'ON' : 'OFF'}`;
+      });
+
+      function speak(text) {
+        if (!state.sound || !window.speechSynthesis) return;
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.02;
+        window.speechSynthesis.speak(u);
+      }
+
+      // === RISK ENGINE ===
+      function calculateRisk(outage) {
+        let score = 0;
+        if (outage.type === 'Emergency') score += 30;
+        if (outage.feeder.includes('33kV')) score += 20;
+        if (outage.critical) score += 25;
+        if (['08:00', '12:00', '18:00'].some(t => outage.start.includes(t))) score += 15;
+        if (outage.duration.includes('4') || outage.duration.includes('5') || outage.duration.includes('6')) score += 10;
+        return Math.min(100, score);
+      }
+
+      // === ADD OUTAGE REQUEST ===
+      function addOutageRequest() {
+        const tbody = $('#tblOutage tbody');
+        const recentBody = $('#tblRecentOutages tbody');
+        if (!tbody || !recentBody) return;
+
+        const hasCritical = chance(0.4);
+        const req = {
+          id: 'OUT-' + uid(),
+          feeder: feeders[rand(0, feeders.length - 1)],
+          type: types[rand(0, 1)],
+          start: now(),
+          duration: rand(1, 6) + ' hrs',
+          reason: reasons[rand(0, reasons.length - 1)],
+          region: regions[rand(0, regions.length - 1)],
+          critical: hasCritical,
+          riskScore: 0,
+          status: 'Pending'
+        };
+
+        req.riskScore = calculateRisk(req);
+
+        const tr = document.createElement('tr');
+        const riskLevel = req.riskScore > 70 ? 'bad' : req.riskScore > 40 ? 'warn' : 'ok';
+        const canApprove = req.riskScore <= 70;
+
+        tr.innerHTML = `
+          <td>${req.id}</td>
+          <td>${req.feeder}</td>
+          <td><span class="status ${req.type === 'Emergency' ? 'bad' : 'info'}">${req.type}</span></td>
+          <td>${req.start}</td>
+          <td>${req.duration}</td>
+          <td>${req.reason}</td>
+          <td>${req.region}</td>
+          <td>${req.critical ? '✅ Yes' : '❌ No'}</td>
+          <td><span class="status ${riskLevel}">${req.riskScore > 70 ? 'HIGH' : req.riskScore > 40 ? 'MEDIUM' : 'LOW'}</span></td>
+          <td class="actions">
+            <button class="pill approve" ${canApprove ? '' : 'disabled style="opacity:0.5"'} data-id="${req.id}">Approve</button>
+            <button class="pill reject" data-id="${req.id}">Reject</button>
+          </td>
+        `;
+
+        tbody.prepend(tr);
+        recentBody.prepend(tr.cloneNode(true));
+
+        // Approve Action
+        tr.querySelector('.approve')?.addEventListener('click', () => {
+          req.status = 'APPROVED';
+          tr.style.opacity = '0.6';
+          $('.actions', tr).innerHTML = '<span class="status ok">APPROVED</span>';
+          speak(`Outage ${req.id} approved`);
+          updateKPIs();
+          addSwitchingOrder(req);
+        });
+
+        // Reject Action
+        tr.querySelector('.reject')?.addEventListener('click', () => {
+          req.status = 'REJECTED';
+          tr.style.opacity = '0.6';
+          $('.actions', tr).innerHTML = '<span class="status bad">REJECTED</span>';
+          speak(`Outage ${req.id} rejected`);
+          updateKPIs();
+        });
+
+        state.approvals.OUTAGE.push(req);
+        updateKPIs();
+        updateCharts();
+      }
+
+      // === ADD SWITCHING ORDER AFTER APPROVAL ===
+      function addSwitchingOrder(req) {
+        const tbody = $('#tblSwitch tbody');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${now()}</td>
+          <td>${req.feeder}</td>
+          <td>Isolate & Switch</td>
+          <td>Auto-Generated</td>
+          <td><span class="status ok">QUEUED</span></td>
+        `;
+        tbody.prepend(tr);
+      }
+
+      // === UPDATE KPIS ===
+      function updateKPIs() {
+        $('#kpiOutages').textContent = state.alarms.filter(a => a.includes('Trip')).length || 3;
+        $('#kpiPending').textContent = state.approvals.OUTAGE.filter(o => o.status === 'Pending').length;
+        $('#kpiUptime').textContent = '99.1%';
+      }
+
+      // === SEARCH FILTER ===
+      $('#globalSearch').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        ['tblOutage', 'tblRecentOutages'].forEach(id => {
+          const table = $(`#${id}`);
+          if (!table) return;
+          table.querySelectorAll('tbody tr').forEach(tr => {
+            tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+      });
+
+      // === EVENTS ===
+      $('#btnNewOutage').addEventListener('click', addOutageRequest);
+      $('#simulateEvents').addEventListener('click', addOutageRequest);
+
+      // === SIMULATE LIVE DATA ===
+      setInterval(() => {
+        if (chance(0.3)) {
+          addOutageRequest();
+        }
+        updateCharts();
+      }, 15000); // Every 15 seconds
+
+      // === INIT ===
+      function seed() {
+        for (let i = 0; i < 5; i++) {
+          addOutageRequest();
+        }
+        updateKPIs();
+        initCharts();
+      }
+      seed();
+
+    })();
+  </script>
+</body>
+</html>

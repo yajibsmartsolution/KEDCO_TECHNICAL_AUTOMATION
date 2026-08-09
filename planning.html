@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEDCO - Planning, Design & Construction Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --kedco-primary: #0056b3;
+            --kedco-secondary: #f8a51b;
+            --kedco-dark: #003366;
+            --kedco-light: #e6f2ff;
+            --alert: #e74c3c;
+            --warning: #f39c12;
+            --success: #2ecc71;
+            --info: #3498db;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+        
+        /* Header Styles */
+        header {
+            grid-column: 2;
+            background-color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            height: 50px;
+            margin-right: 20px;
+        }
+        
+        .header-title h1 {
+            color: var(--kedco-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .header-title p {
+            color: var(--kedco-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+        
+        .datetime {
+            text-align: right;
+            margin-right: 20px;
+        }
+        
+        .datetime #date {
+            font-weight: 500;
+            color: var(--kedco-dark);
+        }
+        
+        .datetime #time {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--kedco-primary);
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid var(--kedco-secondary);
+        }
+        
+        .user-info h4 {
+            font-size: 0.9rem;
+            color: var(--kedco-dark);
+        }
+        
+        .user-info p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            grid-row: 1 / 3;
+            background-color: var(--kedco-dark);
+            color: white;
+            padding: 20px 0;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-header h3 {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-header p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            border-left: 4px solid var(--kedco-secondary);
+        }
+        
+        .sidebar-menu i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+        
+        /* Main Content Styles */
+        main {
+            grid-column: 2;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--kedco-primary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-header h3 {
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        
+        .card-header .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .card-header .btn {
+            background-color: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .card-header .btn:hover {
+            background-color: rgba(255,255,255,0.3);
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Load Forecast Section */
+        .forecast-chart {
+            height: 250px;
+            margin-bottom: 20px;
+        }
+        
+        .bottleneck-alerts {
+            margin-top: 20px;
+        }
+        
+        .alert-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background-color: var(--kedco-light);
+        }
+        
+        .alert-item.critical {
+            background-color: #fde8e8;
+            border-left: 4px solid var(--alert);
+        }
+        
+        .alert-item.warning {
+            background-color: #fef5e6;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .alert-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .critical .alert-icon {
+            color: var(--alert);
+        }
+        
+        .warning .alert-icon {
+            color: var(--warning);
+        }
+        
+        .alert-content h4 {
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+        
+        .alert-content p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        /* Construction Projects Section */
+        .projects-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .projects-table th {
+            text-align: left;
+            padding: 10px;
+            background-color: var(--kedco-light);
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        
+        .projects-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--kedco-primary);
+            border-radius: 4px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .status-planned {
+            background-color: #e6f7ff;
+            color: var(--info);
+        }
+        
+        .status-ongoing {
+            background-color: #e6f7e6;
+            color: var(--success);
+        }
+        
+        .status-delayed {
+            background-color: #fff2e6;
+            color: var(--warning);
+        }
+        
+        /* Design Submissions Section */
+        .design-list {
+            list-style: none;
+        }
+        
+        .design-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .design-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .design-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--kedco-light);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--kedco-primary);
+        }
+        
+        .design-details h4 {
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+        
+        .design-details p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .design-status {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 12px;
+        }
+        
+        .status-pending {
+            background-color: #fff8e6;
+            color: #d48806;
+        }
+        
+        .status-reviewed {
+            background-color: #e6ffed;
+            color: #237804;
+        }
+        
+        .status-rejected {
+            background-color: #fff1f0;
+            color: #cf1322;
+        }
+        
+        /* Material Tracker Section */
+        .inventory-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .inventory-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .inventory-item.low {
+            border: 2px solid var(--alert);
+        }
+        
+        .inventory-icon {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--kedco-primary);
+        }
+        
+        .inventory-item.low .inventory-icon {
+            color: var(--alert);
+        }
+        
+        .inventory-count {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .inventory-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        /* Testing & Commissioning Section */
+        .calendar {
+            width: 100%;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .calendar-title {
+            font-weight: 500;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            padding: 5px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            position: relative;
+        }
+        
+        .calendar-day.empty {
+            background-color: transparent;
+        }
+        
+        .calendar-day.today {
+            background-color: var(--kedco-light);
+            border: 1px solid var(--kedco-primary);
+        }
+        
+        .calendar-day-number {
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+        
+        .calendar-event {
+            font-size: 0.7rem;
+            background-color: var(--kedco-secondary);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Footer Styles */
+        footer {
+            grid-column: 2;
+            background-color: var(--kedco-dark);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        
+        .footer-links a:hover {
+            opacity: 0.8;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 70px 1fr;
+            }
+            
+            .sidebar-header, .menu-text {
+                display: none;
+            }
+            
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 15px 0;
+            }
+            
+            .sidebar-menu i {
+                margin-right: 0;
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title h1 {
+                font-size: 1.2rem;
+            }
+            
+            .datetime {
+                display: none;
+            }
+        }
+        
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .notification-info h4 {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .notification-info p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .notification-close {
+            margin-left: 15px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-weight: 500;
+        }
+        
+        .modal-close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--kedco-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--kedco-dark);
+        }
+        
+        .btn-secondary {
+            background-color: #eee;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #ddd;
+        }
+        
+        /* Admin Panel Styles */
+        .admin-panel {
+            display: none;
+        }
+        
+        .admin-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        /* Voice Alert Button */
+        .voice-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--kedco-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 999;
+        }
+        
+        .voice-toggle.muted {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>KEDCO</h3>
+                <p>Planning, Design & Construction</p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> <span class="menu-text">Dashboard</span></a></li>
+                <li><a href="#"><i class="fas fa-bolt"></i> <span class="menu-text">Load Forecast</span></a></li>
+                <li><a href="#"><i class="fas fa-hard-hat"></i> <span class="menu-text">Projects</span></a></li>
+                <li><a href="#"><i class="fas fa-drafting-compass"></i> <span class="menu-text">Designs</span></a></li>
+                <li><a href="#"><i class="fas fa-boxes"></i> <span class="menu-text">Inventory</span></a></li>
+                <li><a href="#"><i class="fas fa-calendar-check"></i> <span class="menu-text">Commissioning</span></a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> <span class="menu-text">Settings</span></a></li>
+               <li><a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Header -->
+        <header>
+            <div class="header-left">
+                <img src="https://kedco.ng/wp-content/uploads/2021/06/KEDCO-Logo.png" alt="KEDCO Logo" class="logo">
+                <div class="header-title">
+                    <h1>Planning, Design & Construction Dashboard</h1>
+                    <p>Real-time monitoring and management</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="datetime">
+                    <div id="date">Monday, August 4, 2025</div>
+                    <div id="time">14:30:45</div>
+                </div>
+                <div class="user-profile">
+                    <img src="https://randomuser.me/api/portraits/men/42.jpg" alt="User Profile">
+                    <div class="user-info">
+                        <h4>Engr. Abdullahi Bello</h4>
+                        <p>Head of O&M</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Load Forecast Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bolt"></i> Load Forecasts & Network Planning</h3>
+                    <div class="actions">
+                        <button class="btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        <button class="btn"><i class="fas fa-download"></i> Export</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="forecast-chart">
+                        <canvas id="demandChart"></canvas>
+                    </div>
+                    <div class="bottleneck-alerts">
+                        <h4>Network Bottlenecks</h4>
+                        <div class="alert-item critical">
+                            <div class="alert-icon"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="alert-content">
+                                <h4>Overload Alert: Kano Central Feeder</h4>
+                                <p>Current load at 98% capacity - immediate action required</p>
+                            </div>
+                        </div>
+                        <div class="alert-item warning">
+                            <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="alert-content">
+                                <h4>Voltage Drop: Nassarawa District</h4>
+                                <p>Voltage below acceptable levels during peak hours</p>
+                            </div>
+                        </div>
+                        <div class="alert-item">
+                            <div class="alert-icon"><i class="fas fa-info-circle"></i></div>
+                            <div class="alert-content">
+                                <h4>Maintenance Required: Tarauni Substation</h4>
+                                <p>Scheduled for Q3 2025 upgrade</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ongoing Projects Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-hard-hat"></i> Ongoing Construction Projects</h3>
+                    <div class="actions">
+                        <button class="btn" id="addProjectBtn"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="projects-table">
+                        <thead>
+                            <tr>
+                                <th>Project Name</th>
+                                <th>Contractor</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Kano Central 33kV Line</td>
+                                <td>BUA Construction</td>
+                                <td>Kano Municipal</td>
+                                <td><span class="status-badge status-ongoing">Ongoing</span></td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: 65%"></div>
+                                    </div>
+                                    <small>65% complete</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Update</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Dawakin Tofa Substation</td>
+                                <td>Julius Berger</td>
+                                <td>Dawakin Tofa</td>
+                                <td><span class="status-badge status-delayed">Delayed</span></td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: 30%"></div>
+                                    </div>
+                                    <small>30% complete</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Update</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Gwarzo Feeder Upgrade</td>
+                                <td>CCECC</td>
+                                <td>Gwarzo LGA</td>
+                                <td><span class="status-badge status-ongoing">Ongoing</span></td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: 45%"></div>
+                                    </div>
+                                    <small>45% complete</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Update</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Rimin Gado RMU Installation</td>
+                                <td>KEDCO In-house</td>
+                                <td>Rimin Gado</td>
+                                <td><span class="status-badge status-planned">Planned</span></td>
+                                <td>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: 5%"></div>
+                                    </div>
+                                    <small>5% complete</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Update</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Design Submissions Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-drafting-compass"></i> Design Submissions & Review</h3>
+                    <div class="actions">
+                        <button class="btn"><i class="fas fa-upload"></i> Upload</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <ul class="design-list">
+                        <li class="design-item">
+                            <div class="design-info">
+                                <div class="design-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="design-details">
+                                    <h4>Kumbotso 33kV Line Design</h4>
+                                    <p>Submitted: 02/08/2025 by Engr. Musa</p>
+                                </div>
+                            </div>
+                            <span class="design-status status-pending">Pending Review</span>
+                        </li>
+                        <li class="design-item">
+                            <div class="design-info">
+                                <div class="design-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="design-details">
+                                    <h4>Tarauni Substation Layout</h4>
+                                    <p>Submitted: 28/07/2025 by Engr. Fatima</p>
+                                </div>
+                            </div>
+                            <span class="design-status status-reviewed">Approved</span>
+                        </li>
+                        <li class="design-item">
+                            <div class="design-info">
+                                <div class="design-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="design-details">
+                                    <h4>Gaya Feeder Protection Scheme</h4>
+                                    <p>Submitted: 25/07/2025 by Engr. Yusuf</p>
+                                </div>
+                            </div>
+                            <span class="design-status status-rejected">Rejected</span>
+                        </li>
+                        <li class="design-item">
+                            <div class="design-info">
+                                <div class="design-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="design-details">
+                                    <h4>Bichi Distribution Network</h4>
+                                    <p>Submitted: 20/07/2025 by Engr. Amina</p>
+                                </div>
+                            </div>
+                            <span class="design-status status-reviewed">Approved</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Material Tracker Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-boxes"></i> Material and Equipment Tracker</h3>
+                    <div class="actions">
+                        <button class="btn"><i class="fas fa-plus"></i> Request</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="inventory-summary">
+                        <div class="inventory-item low">
+                            <div class="inventory-icon">
+                                <i class="fas fa-transformer"></i>
+                            </div>
+                            <div class="inventory-count">3</div>
+                            <div class="inventory-label">500kVA Transformers</div>
+                        </div>
+                        <div class="inventory-item">
+                            <div class="inventory-icon">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div class="inventory-count">42</div>
+                            <div class="inventory-label">RMUs</div>
+                        </div>
+                        <div class="inventory-item low">
+                            <div class="inventory-icon">
+                                <i class="fas fa-pole"></i>
+                            </div>
+                            <div class="inventory-count">15</div>
+                            <div class="inventory-label">Concrete Poles</div>
+                        </div>
+                        <div class="inventory-item">
+                            <div class="inventory-icon">
+                                <i class="fas fa-cable"></i>
+                            </div>
+                            <div class="inventory-count">8,250m</div>
+                            <div class="inventory-label">33kV Cable</div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 20px 0 10px;">Pending Material Requests</h4>
+                    <table class="projects-table">
+                        <thead>
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Material</th>
+                                <th>Quantity</th>
+                                <th>Requested By</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>MR-2025-087</td>
+                                <td>500kVA Transformer</td>
+                                <td>2</td>
+                                <td>Engr. Hassan (Kano Central)</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                            </tr>
+                            <tr>
+                                <td>MR-2025-086</td>
+                                <td>Concrete Poles</td>
+                                <td>50</td>
+                                <td>Engr. Jamila (Dawakin Tofa)</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                            </tr>
+                            <tr>
+                                <td>MR-2025-085</td>
+                                <td>33kV Cable</td>
+                                <td>1,200m</td>
+                                <td>Engr. Abdullahi (Gwarzo)</td>
+                                <td><span class="status-badge status-reviewed">Approved</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Testing & Commissioning Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-check"></i> Testing & Commissioning Schedule</h3>
+                    <div class="actions">
+                        <button class="btn"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-header">
+                        <h4 class="calendar-title">August 2025</h4>
+                        <div class="calendar-nav">
+                            <button class="btn btn-secondary" style="padding: 5px 10px;"><i class="fas fa-chevron-left"></i></button>
+                            <button class="btn btn-secondary" style="padding: 5px 10px;"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                        
+                        <!-- Calendar days would be generated dynamically in a real app -->
+                        <div class="calendar-day empty"></div>
+                        <div class="calendar-day empty"></div>
+                        <div class="calendar-day empty"></div>
+                        <div class="calendar-day empty"></div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">1</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">2</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">3</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">4</div>
+                            <div class="calendar-event">Kano Central Testing</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">5</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">6</div>
+                            <div class="calendar-event">Dawakin Tofa Commissioning</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">7</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">8</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">9</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">10</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">11</div>
+                            <div class="calendar-event">Gwarzo Feeder Tests</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">12</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">13</div>
+                        </div>
+                        <div class="calendar-day today">
+                            <div class="calendar-day-number">14</div>
+                            <div class="calendar-event">Rimin Gado Inspection</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">15</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">16</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">17</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">18</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">19</div>
+                            <div class="calendar-event">Bichi Network Tests</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">20</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">21</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">22</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">23</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">24</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">25</div>
+                            <div class="calendar-event">Kumbotso Commissioning</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">26</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">27</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">28</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">29</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">30</div>
+                            <div class="calendar-event">Tarauni Upgrade Tests</div>
+                        </div>
+                        <div class="calendar-day">
+                            <div class="calendar-day-number">31</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Panel (visible to Head of O&M) -->
+            <div class="card admin-panel">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-shield"></i> Admin Controls</h3>
+                </div>
+                <div class="card-body">
+                    <div class="admin-controls">
+                        <button class="btn btn-primary"><i class="fas fa-user-plus"></i> Add User</button>
+                        <button class="btn btn-primary"><i class="fas fa-cog"></i> System Settings</button>
+                        <button class="btn btn-primary"><i class="fas fa-file-export"></i> Export All Data</button>
+                    </div>
+                    <h4>User Management</h4>
+                    <table class="projects-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Title</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Engr. Abdullahi Bello</td>
+                                <td>Head of O&M</td>
+                                <td>a.bello@kedco.ng</td>
+                                <td>Admin</td>
+                                <td>Today, 14:15</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Edit</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Engr. Fatima Yusuf</td>
+                                <td>Senior Design Engineer</td>
+                                <td>f.yusuf@kedco.ng</td>
+                                <td>Engineer</td>
+                                <td>Today, 10:30</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Edit</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Engr. Musa Hassan</td>
+                                <td>Construction Supervisor</td>
+                                <td>m.hassan@kedco.ng</td>
+                                <td>Engineer</td>
+                                <td>Yesterday, 16:45</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Edit</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Engr. Amina Suleiman</td>
+                                <td>Planning Engineer</td>
+                                <td>a.suleiman@kedco.ng</td>
+                                <td>Engineer</td>
+                                <td>Yesterday, 14:20</td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 0.7rem;">Edit</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-links">
+                <a href="#">Terms of Service</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Contact Support</a>
+            </div>
+            <div class="footer-copyright">
+                &copy; 2025 Kano Electricity Distribution Company (KEDCO). All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification">
+        <div class="notification-icon" style="background-color: var(--alert);">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="notification-info">
+            <h4>New Material Request</h4>
+            <p>Engr. Hassan requested 2 x 500kVA Transformers</p>
+        </div>
+        <div class="notification-close">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+
+    <!-- Add Project Modal -->
+    <div class="modal" id="addProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Construction Project</h3>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <div class="form-group">
+                        <label for="projectName">Project Name</label>
+                        <input type="text" id="projectName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contractor">Contractor</label>
+                        <input type="text" id="contractor" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">Estimated Completion</label>
+                        <input type="date" id="endDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectManager">Assigned Engineer</label>
+                        <select id="projectManager" class="form-control" required>
+                            <option value="">Select Engineer</option>
+                            <option value="Engr. Fatima Yusuf">Engr. Fatima Yusuf</option>
+                            <option value="Engr. Musa Hassan">Engr. Musa Hassan</option>
+                            <option value="Engr. Amina Suleiman">Engr. Amina Suleiman</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Save Project</button>
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Alert Toggle -->
+    <div class="voice-toggle">
+        <i class="fas fa-volume-up"></i>
+    </div>
+
+    <script>
+        // Update date and time in real-time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
+            document.getElementById('time').textContent = now.toLocaleTimeString('en-US');
+        }
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+        
+        // Show admin panel for Head of O&M
+        const userRole = "Head of O&M";
+        if(userRole === "Head of O&M") {
+            document.querySelector('.admin-panel').style.display = 'block';
+        }
+        
+        // Load Forecast Chart
+        const ctx = document.getElementById('demandChart').getContext('2d');
+        const demandChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: '2024 Actual Demand (MW)',
+                        data: [320, 340, 360, 380, 400, 420, 440, 430, 410, 390, 370, 350],
+                        borderColor: 'rgba(0, 86, 179, 0.7)',
+                        backgroundColor: 'rgba(0, 86, 179, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '2025 Forecast (MW)',
+                        data: [350, 370, 390, 410, 430, 450, 470, 460, 440, 420, 400, 380],
+                        borderColor: 'rgba(248, 165, 27, 0.7)',
+                        backgroundColor: 'rgba(248, 165, 27, 0.1)',
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Demand (MW)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Modal functionality
+        const addProjectBtn = document.getElementById('addProjectBtn');
+        const addProjectModal = document.getElementById('addProjectModal');
+        const modalCloseBtns = document.querySelectorAll('.modal-close');
+        
+        addProjectBtn.addEventListener('click', () => {
+            addProjectModal.style.display = 'flex';
+        });
+        
+        modalCloseBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                addProjectModal.style.display = 'none';
+            });
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if(e.target === addProjectModal) {
+                addProjectModal.style.display = 'none';
+            }
+        });
+        
+        // Form submission
+        document.getElementById('projectForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // In a real app, you would send this data to the server
+            alert('Project added successfully!');
+            addProjectModal.style.display = 'none';
+            // Reset form
+            e.target.reset();
+        });
+        
+        // Logout function
+function logout() {
+  // Optional: Show confirmation
+  const confirmed = confirm("Are you sure you want to log out?");
+  if (!confirmed) return;
+
+  // Optional: Clear any session data (if you're using localStorage, etc.)
+  // localStorage.clear();
+  // sessionStorage.clear();
+
+  // Redirect to login/home page
+  window.location.href = "index.html";
+}
+        // Notification system
+        function showNotification(title, message, type = 'info') {
+            const notification = document.querySelector('.notification');
+            const icon = notification.querySelector('.notification-icon');
+            const info = notification.querySelector('.notification-info');
+            
+            // Set notification content
+            info.querySelector('h4').textContent = title;
+            info.querySelector('p').textContent = message;
+            
+            // Set icon color based on type
+            let bgColor = 'var(--info)';
+            if(type === 'alert') bgColor = 'var(--alert)';
+            if(type === 'warning') bgColor = 'var(--warning)';
+            if(type === 'success') bgColor = 'var(--success)';
+            
+            icon.style.backgroundColor = bgColor;
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Close notification button
+        document.querySelector('.notification-close').addEventListener('click', () => {
+            document.querySelector('.notification').classList.remove('show');
+        });
+        
+        // Voice alerts toggle
+        const voiceToggle = document.querySelector('.voice-toggle');
+        let voiceEnabled = true;
+        
+        voiceToggle.addEventListener('click', () => {
+            voiceEnabled = !voiceEnabled;
+            if(voiceEnabled) {
+                voiceToggle.classList.remove('muted');
+                voiceToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+            } else {
+                voiceToggle.classList.add('muted');
+                voiceToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            }
+        });
+        
+        // Simulate real-time updates
+        function simulateUpdates() {
+            // Randomly show notifications
+            const notifications = [
+                {
+                    title: 'New Material Request',
+                    message: 'Engr. Jamila requested 50 Concrete Poles',
+                    type: 'alert'
+                },
+                {
+                    title: 'Design Submission',
+                    message: 'Engr. Yusuf submitted new drawings for review',
+                    type: 'info'
+                },
+                {
+                    title: 'Approval Required',
+                    message: 'Project "Dawakin Tofa Substation" requires your approval',
+                    type: 'warning'
+                },
+                {
+                    title: 'Commissioning Complete',
+                    message: 'Kano Central 33kV Line successfully commissioned',
+                    type: 'success'
+                }
+            ];
+            
+            const randomNotif = notifications[Math.floor(Math.random() * notifications.length)];
+            
+            setTimeout(() => {
+                showNotification(randomNotif.title, randomNotif.message, randomNotif.type);
+                
+                if(voiceEnabled) {
+                    // In a real app, you would use the Web Speech API for voice alerts
+                    console.log('Voice alert:', randomNotif.message);
+                }
+                
+                // Continue simulating
+                simulateUpdates();
+            }, 15000); // Every 15 seconds
+        }
+        
+        // Start simulation after 3 seconds
+        setTimeout(simulateUpdates, 3000);
+        
+        // Show initial notification after 1 second
+        setTimeout(() => {
+            showNotification('Welcome, Engr. Abdullahi', 'You have 3 pending tasks requiring your attention', 'info');
+        }, 1000);
+    </script>
+</body>
+
+</html>

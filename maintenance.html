@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>KEDCO O&M Unit — Live Demo (Head O&M)</title>
+
+  <!-- Font + Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#062913; --panel:#0b3d20; --gold:#ffd44d; --text:#eef6ea; --muted:#b9c8b3; --accent:#13b36b;
+      --radius:12px; --shadow:0 14px 40px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#041a10);color:var(--text);-webkit-font-smoothing:antialiased}
+    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,var(--panel),#08341c);box-shadow:var(--shadow)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:46px;height:46px;border-radius:10px;background:conic-gradient(from 140deg,var(--gold),#fff2b0);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
+    .brand h1{margin:0;font-size:16px;color:var(--gold);font-weight:800}
+    .top-actions{display:flex;align-items:center;gap:12px}
+    .logout{background:linear-gradient(90deg,#e74c3c,#ff6b6b);border:0;padding:8px 12px;border-radius:8px;color:#fff;font-weight:700;cursor:pointer}
+    .clock{color:var(--muted);font-size:13px;min-width:220px;text-align:right}
+    .page{display:grid;grid-template-columns:300px 1fr;gap:20px;padding:20px}
+    aside{background:linear-gradient(180deg,var(--panel),#082a18);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,.03);box-shadow:var(--shadow);height:calc(100vh - 140px);position:sticky;top:70px}
+    .nav{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+    .nav button{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.03);background:transparent;color:var(--text);cursor:pointer}
+    .nav button.active{background:linear-gradient(90deg, rgba(255,212,77,.06), rgba(19,179,107,.03));border-color:rgba(255,212,77,.12)}
+    .sidebar-foot{position:absolute;bottom:18px;font-size:12px;color:var(--muted)}
+
+    main{min-height:60vh}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .live-badge{background:var(--gold);color:#05210d;padding:6px 10px;border-radius:999px;font-weight:700}
+    .muted{color:var(--muted)}
+    .search{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--text);min-width:220px}
+    .btn{padding:10px 14px;border-radius:10px;border:0;background:transparent;color:var(--text);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#2ed88e);color:#05210d;font-weight:700}
+    .grid{display:grid;gap:16px}
+    .kpis{grid-template-columns:repeat(4,1fr)}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:16px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.03);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+    .kpi-val{font-size:26px;font-weight:800}
+
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:left}
+    th{color:var(--muted);font-weight:700;font-size:13px}
+    .status{padding:6px 10px;border-radius:999px;font-weight:700}
+    .status.ok{background:rgba(19,179,107,.12);color:#8ef0b9}
+    .status.warn{background:rgba(255,212,77,.12);color:#ffe9a8}
+    .status.bad{background:rgba(231,76,60,.12);color:#ffb1ac}
+    .status.pending{background:rgba(255,255,255,.04);color:var(--muted)}
+    .actions{display:flex;gap:8px;align-items:center}
+    .pill{padding:8px 10px;border-radius:999px;border:0;cursor:pointer;background:transparent;color:var(--text)}
+    .pill.approve{background:rgba(19,179,107,.12);color:var(--accent);font-weight:700}
+    .pill.reject{background:rgba(231,76,60,.12);color:#ff7b7b;font-weight:700}
+    .pill.assign{background:rgba(255,212,77,.08);color:var(--gold);font-weight:700}
+    .progress{height:10px;background:rgba(255,255,255,.04);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7bf1a6);width:0%}
+    footer{padding:12px 20px;background:linear-gradient(90deg,var(--panel),#08341c);color:var(--muted);text-align:center;border-top:1px solid rgba(255,255,255,.04)}
+
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999;display:none}
+    .modal .panel{background:var(--panel);padding:16px;border-radius:12px;width:760px;max-width:95%;box-shadow:var(--shadow)}
+    .form-row{display:flex;gap:8px;margin-bottom:8px}
+    .form-row > *{flex:1}
+    input,select,textarea{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--text);resize:vertical}
+    textarea{min-height:90px}
+
+    @media(max-width:1100px){ .kpis{grid-template-columns:repeat(2,1fr)} .page{grid-template-columns:1fr} aside{position:relative;height:auto} .topbar{flex-direction:column;gap:8px} .clock{text-align:left} }
+    @media(max-width:700px){ .kpis{grid-template-columns:1fr} .form-row{flex-direction:column} }
+  </style>
+</head>
+<body>
+  <!--
+    KEDCO O&M Unit — Live demo with sample data in all sections.
+    Save as om_om_dashboard.html and open in a modern browser.
+    TODO: Add backend persistence & auth (Head O&M role).
+  -->
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Kano Electricity Distribution Company</div>
+          <h1>KEDCO — Operation & Maintenance Unit (Head O&M)</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div id="topNow" class="clock">—</div>
+        <button id="toggleSound" class="btn">🔊 Sound: ON</button>
+        <button class="logout" onclick="window.location.href='index.html'">Logout</button>
+      </div>
+    </div>
+
+    <div class="page">
+      <aside>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:8px;background:conic-gradient(from 140deg,var(--gold),#fff2b0)"></div>
+          <div>
+            <div style="font-weight:700">O&M — Head</div>
+            <div style="font-size:12px;color:var(--muted)">Live demo — sample data</div>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Primary">
+          <button class="active" data-target="overview">🏠 Overview</button>
+          <button data-target="trouble">🚨 Trouble Reports</button>
+          <button data-target="materials">📦 Material Requests</button>
+          <button data-target="repairs">🔧 Transformer Repairs</button>
+          <button data-target="track">📍 Transformer Tracking</button>
+          <button data-target="inventory">🏬 Inventory</button>
+        </nav>
+
+        <div class="sidebar-foot">© <span id="yearSmall"></span> KEDCO • O&M Unit — Demo</div>
+      </aside>
+
+      <main>
+        <header>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="live-badge">HEAD O&M</div>
+            <div>
+              <div style="font-weight:800">Operation & Maintenance — Head O&M Console</div>
+              <div id="subclock" class="muted">Real-time sample data</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="globalSearch" class="search" placeholder="Search (req#, asset, material, team...)">
+            <button id="simulateAll" class="btn primary">Simulate Events</button>
+            <button id="createSample" class="btn">+ Sample Trouble</button>
+          </div>
+        </header>
+
+        <!-- Overview -->
+        <section id="overview" class="view">
+          <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+            <div class="card"><div class="muted">Open Trouble Reports</div><div class="kpi-val" id="kpiTR">—</div></div>
+            <div class="card"><div class="muted">Pending Material Requests</div><div class="kpi-val" id="kpiMatPending">—</div></div>
+            <div class="card"><div class="muted">Transformers In Repair</div><div class="kpi-val" id="kpiInRepair">—</div></div>
+            <div class="card"><div class="muted">Items Low in Store</div><div class="kpi-val" id="kpiLowItems">—</div></div>
+          </div>
+
+          <div class="grid" style="grid-template-columns:1fr 420px;gap:16px">
+            <div class="card">
+              <div class="muted">Trouble Reports by Region</div>
+              <canvas id="chartRegions" style="height:240px"></canvas>
+            </div>
+            <div class="card">
+              <div class="muted">Transformers by Workshop</div>
+              <canvas id="chartWorkshops" style="height:240px"></canvas>
+            </div>
+          </div>
+
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+            <div class="card">
+              <div class="muted">Material Requests Status</div>
+              <canvas id="chartMatStatus" style="height:220px"></canvas>
+            </div>
+            <div class="card">
+              <div class="muted">Repair Timeline (Sample)</div>
+              <canvas id="chartRepLine" style="height:220px"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Trouble -->
+        <section id="trouble" class="view" style="display:none">
+          <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div><div class="muted">Trouble Reports</div><div style="font-size:12px;color:var(--muted)">Head O&M approves then assigns to teams</div></div>
+            <div>
+              <button id="sampleTR" class="btn">+ Sample Trouble</button>
+              <button id="newTR" class="btn">+ New Trouble</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <table id="tblTR"><thead><tr><th>Req#</th><th>Region</th><th>Issue</th><th>Asset</th><th>Priority</th><th>Reported</th><th>Time</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- Materials -->
+        <section id="materials" class="view" style="display:none">
+          <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div><div class="muted">Material Requests</div><div style="font-size:12px;color:var(--muted)">Head O&M approves/rejects and assigns teams</div></div>
+            <div>
+              <button id="openMatForm" class="btn">+ New Material Request</button>
+              <button id="sampleMat" class="btn">Sample Request</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <table id="tblMaterials"><thead><tr><th>Req#</th><th>Requester</th><th>Item</th><th>Qty</th><th>Unit</th><th>Priority</th><th>Needed</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- Repairs -->
+        <section id="repairs" class="view" style="display:none">
+          <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div><div class="muted">Transformer Repair Requests</div><div style="font-size:12px;color:var(--muted)">Head O&M approves and assigns workshop/team</div></div>
+            <div>
+              <button id="openRepairForm" class="btn">+ New Repair</button>
+              <button id="sampleRepair" class="btn">Sample Repair</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <table id="tblRepairs"><thead><tr><th>Req#</th><th>Feeder</th><th>Asset</th><th>Fault</th><th>Workshop</th><th>Risk</th><th>By</th><th>Time</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- Tracking -->
+        <section id="track" class="view" style="display:none">
+          <div class="card"><div class="muted">Transformer Tracking</div>
+            <table id="tblTrack"><thead><tr><th>Asset</th><th>Workshop</th><th>Status</th><th>Progress</th><th>Started</th><th>ETA</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- Inventory -->
+        <section id="inventory" class="view" style="display:none">
+          <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div><div class="muted">Store Inventory</div><div style="font-size:12px;color:var(--muted)">Low items can auto-generate refill requests</div></div>
+            <div>
+              <button id="addInv" class="btn">+ Add Item</button>
+              <button id="loadSampleInv" class="btn">Load Sample Inventory</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <table id="tblInv"><thead><tr><th>Material</th><th>SKU</th><th>Unit</th><th>Qty</th><th>Level</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <footer style="margin-top:12px" class="muted">KEDCO O&M Unit — Head O&M approvals • Demo</footer>
+      </main>
+    </div>
+
+    <div style="padding:10px 20px;background:linear-gradient(90deg,var(--panel),#08341c);color:var(--muted)">
+      Built for demo — open <strong>om_om_dashboard.html</strong> in a modern browser. TODO: add backend persistence & authentication.
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="modalMat">
+    <div class="panel">
+      <h3>New Material Request</h3>
+      <div style="margin-top:8px">
+        <div class="form-row">
+          <input id="matRequester" placeholder="Requester name / Dept">
+          <select id="matItem">
+            <option value="">Select material</option>
+            <option>Transformer Oil</option>
+            <option>Cross Arm - Wood</option>
+            <option>Cross Arm - Steel</option>
+            <option>Armored Cable - 4mm (m)</option>
+            <option>Armored Cable - 50mm (m)</option>
+            <option>Copper Conductor - 25mm</option>
+            <option>Copper Conductor - 50mm</option>
+            <option>Insulator</option>
+            <option>Fuse</option>
+            <option>Spare Breaker</option>
+            <option>Lubricant</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input id="matQty" type="number" placeholder="Quantity">
+          <input id="matUnit" placeholder="Unit (litres, meters, pcs)">
+          <select id="matPriority"><option>Low</option><option>Medium</option><option>High</option></select>
+        </div>
+        <div class="form-row">
+          <input id="matNeeded" type="datetime-local">
+          <input id="matPurpose" placeholder="Purpose / Notes">
+        </div>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn" id="closeMat">Cancel</button>
+          <button class="btn primary" id="saveMat">Create Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalRepair">
+    <div class="panel">
+      <h3>New Transformer Repair Request</h3>
+      <div style="margin-top:8px">
+        <div class="form-row">
+          <input id="repFeeder" placeholder="Feeder / Substation">
+          <input id="repAsset" placeholder="Transformer Asset ID">
+        </div>
+        <div class="form-row">
+          <select id="repWorkshop">
+            <option>Internal Workshop</option>
+            <option>Mao Workshop</option>
+            <option>Digibit Workshop</option>
+            <option>KASK Workshop</option>
+            <option>Other</option>
+          </select>
+          <select id="repRisk"><option>Low</option><option>Medium</option><option>High</option></select>
+        </div>
+        <div class="form-row">
+          <input id="repBy" placeholder="Reported by">
+          <input id="repTime" type="datetime-local">
+        </div>
+        <div style="margin-top:8px">
+          <textarea id="repFault" placeholder="Reported fault / symptoms"></textarea>
+        </div>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn" id="closeRep">Cancel</button>
+          <button class="btn primary" id="saveRep">Create Repair Request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalInv">
+    <div class="panel">
+      <h3>Add Inventory Item</h3>
+      <div style="margin-top:8px">
+        <div class="form-row">
+          <input id="invName" placeholder="Material name">
+          <input id="invSKU" placeholder="SKU / Type">
+        </div>
+        <div class="form-row">
+          <input id="invUnit" placeholder="Unit (litres, meters, pcs)">
+          <input id="invQty" type="number" placeholder="Starting quantity">
+        </div>
+        <div style="text-align:right;margin-top:8px">
+          <button class="btn" id="closeInv">Cancel</button>
+          <button class="btn primary" id="saveInv">Add Item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessibility announcer -->
+  <div id="announcer" aria-live="polite" style="position:fixed;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* -------------------------
+     Helpers
+  --------------------------*/
+  const $ = (s, ctx=document) => ctx.querySelector(s);
+  const $$ = (s, ctx=document) => Array.from((ctx||document).querySelectorAll(s));
+  const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const chance = p => Math.random() < p;
+  const uid = (p='') => (p? p+'-':'') + Math.random().toString(36).slice(2,8).toUpperCase();
+  const now = ()=> new Date().toLocaleString();
+
+  // Shared state (exposed)
+  window.state = {
+    sound: true,
+    trouble: [],
+    materials: [],
+    repairs: [],
+    transformers: [],
+    inventory: []
+  };
+
+  const teams = ['Regional Engineer','Technical Engineer','HQ Maintenance Team','Rapid Response Maintenance Crew'];
+  const workshops = ['Internal Workshop','Mao Workshop','Digibit Workshop','KASK Workshop','Other'];
+  const regions = ['Kano','Katsina','Jigawa','Dutse','Bichi','Dambatta'];
+
+  // DOM refs
+  const navBtns = $$('.nav button');
+  const views = $$('.view');
+  const topNow = $('#topNow');
+  const toggleSoundBtn = $('#toggleSound');
+  const globalSearch = $('#globalSearch');
+  const yearSmall = $('#yearSmall');
+
+  const tblTR = $('#tblTR tbody');
+  const tblMaterials = $('#tblMaterials tbody');
+  const tblRepairs = $('#tblRepairs tbody');
+  const tblTrack = $('#tblTrack tbody');
+  const tblInv = $('#tblInv tbody');
+
+  const modalMat = $('#modalMat');
+  const modalRepair = $('#modalRepair');
+  const modalInv = $('#modalInv');
+
+  /* -------------------------
+     Announce
+  --------------------------*/
+  function announce(text){
+    try{
+      $('#announcer').textContent = text;
+      if(!window.state.sound) return;
+      if(window.speechSynthesis){
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.02;
+        window.speechSynthesis.speak(u);
+      }
+    }catch(e){ console.warn(e); }
+  }
+  toggleSoundBtn.addEventListener('click', ()=>{
+    window.state.sound = !window.state.sound;
+    toggleSoundBtn.textContent = `${window.state.sound? '🔊':'🔇'} Sound: ${window.state.sound? 'ON':'OFF'}`;
+  });
+
+  /* -------------------------
+     Sample inventory data (realistic)
+  --------------------------*/
+  const sampleInventory = [
+    {name:'Transformer Oil (200L drum)', sku:'TO-200L', unit:'drums', qty:120, lowThreshold:40},
+    {name:'Cross Arm - Wood', sku:'CA-W', unit:'pcs', qty:45, lowThreshold:20},
+    {name:'Cross Arm - Steel', sku:'CA-S', unit:'pcs', qty:60, lowThreshold:15},
+    {name:'Armored Cable - 50mm', sku:'AC-50', unit:'meters', qty:200, lowThreshold:50},
+    {name:'Armored Cable - 16mm', sku:'AC-16', unit:'meters', qty:500, lowThreshold:100},
+    {name:'Copper Conductor - 150mm2', sku:'CC-150', unit:'meters', qty:500, lowThreshold:100},
+    {name:'Insulator', sku:'INS-1', unit:'pcs', qty:300, lowThreshold:80},
+    {name:'Fuse (type A)', sku:'FUS-A', unit:'pcs', qty:800, lowThreshold:150},
+    {name:'Spare Breaker', sku:'BRK-1', unit:'pcs', qty:12, lowThreshold:3},
+    {name:'Lubricant (5L)', sku:'LUB-5', unit:'bottles', qty:180, lowThreshold:30},
+    {name:'Armored Cable - 70mm', sku:'AC-70', unit:'meters', qty:5, lowThreshold:50} // intentionally low/critical
+  ];
+
+  /* -------------------------
+     Seed sample data across all sections
+  --------------------------*/
+  function seedAll(){
+    // inventory
+    window.state.inventory = sampleInventory.map(i => ({...i}));
+
+    // Trouble Reports (mix of pending/approved/in progress/completed)
+    const trSamples = [
+      {id:'TR-001', region:'Kano', issue:'Transformer Tripping', asset:'TR-1001', priority:'High', reportedBy:'Engr. Aisha', time:new Date(Date.now()-2*3600*1000).toLocaleString(), status:'IN PROGRESS', assignedTo:'HQ Maintenance Team', assignedAt:new Date(Date.now()-90*60000).toLocaleString(), remarks:'Relay confirmation done', progress:50},
+      {id:'TR-002', region:'Bichi', issue:'Pole Down', asset:'Pole-450', priority:'Medium', reportedBy:'Engr. Hauwa', time:new Date(Date.now()-6*3600*1000).toLocaleString(), status:'COMPLETED', assignedTo:'Regional Engineer', assignedAt:new Date(Date.now()-5*3600*1000).toLocaleString(), remarks:'Repaired and restored', progress:100},
+      {id:'TR-003', region:'Katsina', issue:'Low Voltage', asset:'TR-2005', priority:'Low', reportedBy:'Engr. Sulaiman', time:new Date(Date.now()-1*3600*1000).toLocaleString(), status:'PENDING', assignedTo:'', assignedAt:'', remarks:'', progress:0},
+      {id:'TR-004', region:'Jigawa', issue:'High Temp', asset:'TR-3002', priority:'High', reportedBy:'Engr. Mustapha', time:new Date(Date.now()-3*3600*1000).toLocaleString(), status:'PENDING', assignedTo:'', assignedAt:'', remarks:'Oil level low', progress:0},
+      {id:'TR-005', region:'Dutse', issue:'Breaker Lockout', asset:'BRK-331', priority:'Medium', reportedBy:'Engr. Huzaimu', time:new Date(Date.now()-30*60000).toLocaleString(), status:'IN PROGRESS', assignedTo:'Rapid Response Maintenance Crew', assignedAt:new Date(Date.now()-20*60000).toLocaleString(), remarks:'On site', progress:25}
+    ];
+    window.state.trouble = trSamples;
+
+    // Material Requests: some pending, some approved, some rejected
+    const matSamples = [
+      {id:'MAT-001', requester:'Stores', item:'Transformer Oil (200L drum)', qty:20, unit:'drums', priority:'High', needed:new Date(Date.now()+3*86400000).toISOString().slice(0,16), notes:'Refill for scheduled works', status:'APPROVED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-2*3600*1000).toLocaleString()},
+      {id:'MAT-002', requester:'Engr. Tajo', item:'Cross Arm - Wood', qty:30, unit:'pcs', priority:'Medium', needed:new Date(Date.now()+7*86400000).toISOString().slice(0,16), notes:'Replacement', status:'PENDING', decidedBy:'', decidedAt:''},
+      {id:'MAT-003', requester:'Engr. Aliyu', item:'Armored Cable - 50mm', qty:150, unit:'meters', priority:'High', needed:new Date(Date.now()+2*86400000).toISOString().slice(0,16), notes:'Urgent project', status:'APPROVED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-12*3600*1000).toLocaleString()},
+      {id:'MAT-004', requester:'Stores', item:'Armored Cable - 70mm', qty:100, unit:'meters', priority:'High', needed:new Date(Date.now()+5*86400000).toISOString().slice(0,16), notes:'Refill for major project', status:'PENDING', decidedBy:'', decidedAt:''},
+      {id:'MAT-005', requester:'Engr. Hauwa', item:'Fuse (type A)', qty:300, unit:'pcs', priority:'Low', needed:new Date(Date.now()+10*86400000).toISOString().slice(0,16), notes:'Routine stock', status:'REJECTED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-1*86400000).toLocaleString()}
+    ];
+    window.state.materials = matSamples;
+
+    // Repairs (some approved/queued/in progress)
+    const repSamples = [
+      {id:'RPR-001', feeder:'Dawanau 11kV', asset:'TR-1001', fault:'Oil leak', workshop:'Mao Workshop', risk:'Medium', by:'Engr. Jafar', time:new Date(Date.now()-26*3600000).toLocaleString(), status:'APPROVED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-25*3600000).toLocaleString()},
+      {id:'RPR-002', feeder:'Gidan Murtala 33kV', asset:'TR-1002', fault:'Winding damage', workshop:'KASK Workshop', risk:'High', by:'Engr. Mansur', time:new Date(Date.now()-50*3600000).toLocaleString(), status:'APPROVED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-48*3600000).toLocaleString()},
+      {id:'RPR-003', feeder:'Zaria Road 11kV', asset:'TR-1003', fault:'Bushings', workshop:'Internal Workshop', risk:'Low', by:'Engr. Bala', time:new Date(Date.now()-5*3600000).toLocaleString(), status:'PENDING', decidedBy:'', decidedAt:''},
+      {id:'RPR-004', feeder:'Hotoro 11kV', asset:'TR-1004', fault:'High temp', workshop:'Digibit Workshop', risk:'Medium', by:'Engr. Ibrahim', time:new Date(Date.now()-3*3600000).toLocaleString(), status:'APPROVED', decidedBy:'Head O&M', decidedAt:new Date(Date.now()-2*3600000).toLocaleString()}
+    ];
+    window.state.repairs = repSamples;
+
+    // Transformers tracking
+    const trackSamples = [
+      {id:'T-1001', asset:'TR-1001', workshop:'Mao Workshop', status:'In Repair', progress:45, tech:'Team A', started:new Date(Date.now()-2*24*3600000).toLocaleString(), eta:new Date(Date.now()+3*24*3600000).toLocaleString()},
+      {id:'T-1002', asset:'TR-1002', workshop:'KASK Workshop', status:'Testing', progress:80, tech:'Team B', started:new Date(Date.now()-4*24*3600000).toLocaleString(), eta:new Date(Date.now()+1*24*3600000).toLocaleString()},
+      {id:'T-1003', asset:'TR-1003', workshop:'Internal Workshop', status:'Queued', progress:10, tech:'Team C', started:new Date().toLocaleString(), eta:new Date(Date.now()+7*24*3600000).toLocaleString()},
+      {id:'T-1004', asset:'TR-1004', workshop:'Digibit Workshop', status:'In Repair', progress:60, tech:'Team D', started:new Date(Date.now()-1*24*3600000).toLocaleString(), eta:new Date(Date.now()+2*24*3600000).toLocaleString()}
+    ];
+    window.state.transformers = trackSamples;
+
+    // After seed announce
+    announce('Sample data loaded for all modules');
+  }
+
+  /* -------------------------
+     Rendering functions
+  --------------------------*/
+  function renderTrouble(){
+    tblTR.innerHTML = '';
+    window.state.trouble.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${t.id}</td><td>${t.region}</td><td>${t.issue}</td><td>${t.asset}</td><td>${t.priority}</td><td>${t.reportedBy}</td><td>${t.time}</td><td><span class="status ${t.status==='COMPLETED'?'ok':t.status==='IN PROGRESS'?'warn':t.status==='APPROVED'?'ok':t.status==='REJECTED'?'bad':'pending'}">${t.status}</span></td><td class="actions"></td>`;
+      tblTR.appendChild(tr);
+      const actions = tr.querySelector('td.actions');
+
+      if(t.status === 'PENDING'){
+        const approve = document.createElement('button'); approve.className='pill approve'; approve.textContent='Approve';
+        const reject = document.createElement('button'); reject.className='pill reject'; reject.textContent='Reject';
+        actions.appendChild(approve); actions.appendChild(reject);
+        approve.addEventListener('click', ()=> {
+          t.status = 'APPROVED';
+          announce(`Trouble ${t.id} approved by Head O&M`);
+          addLog('Head O&M','Approved Trouble',t.id);
+          // keep displayed as approved; assignment next
+          renderTrouble();
+          updateCharts(); updateKPIs();
+        });
+        reject.addEventListener('click', ()=> {
+          t.status = 'REJECTED';
+          announce(`Trouble ${t.id} rejected by Head O&M`);
+          addLog('Head O&M','Rejected Trouble',t.id);
+          renderTrouble(); updateCharts(); updateKPIs();
+        });
+      } else if(t.status === 'APPROVED'){
+        // show assignment controls to Head O&M
+        const sel = document.createElement('select');
+        sel.innerHTML = `<option value="">Assign to team</option>` + teams.map(tm=>`<option>${tm}</option>`).join('');
+        const btn = document.createElement('button'); btn.className='pill assign'; btn.textContent='Assign';
+        actions.appendChild(sel); actions.appendChild(btn);
+        btn.addEventListener('click', ()=>{
+          const team = sel.value;
+          if(!team){ alert('Select team to assign'); return; }
+          t.assignedTo = team;
+          t.assignedAt = new Date().toLocaleString();
+          t.status = 'IN PROGRESS';
+          announce(`Trouble ${t.id} assigned to ${team}`);
+          addLog('Head O&M','Assigned Trouble',`${t.id} → ${team}`);
+          renderTrouble(); updateCharts(); updateKPIs();
+        });
+      } else {
+        // show assigned info and progress if present
+        const info = document.createElement('div'); info.style.fontSize='12px';
+        info.innerHTML = `${t.assignedTo ? `<strong>${t.assignedTo}</strong><br><small style="color:var(--muted)">${t.assignedAt}</small>` : ''}<div style="margin-top:6px">${t.remarks?`<small>${t.remarks}</small><br>`:''}${t.progress ? `<div class="progress"><i style="width:${t.progress}%"></i></div>`:''}</div>`;
+        actions.appendChild(info);
+        // allow Head O&M to mark progress/complete
+        if(t.status === 'IN PROGRESS'){
+          const prog = document.createElement('button'); prog.className='pill'; prog.textContent='+10%';
+          const comp = document.createElement('button'); comp.className='pill approve'; comp.textContent='Complete';
+          actions.appendChild(prog); actions.appendChild(comp);
+          prog.addEventListener('click', ()=>{
+            t.progress = Math.min(100, (t.progress||0) + 10);
+            if(t.progress >= 100){ t.status = 'COMPLETED'; announce(`${t.id} completed`); addLog('Head O&M','Trouble Completed',t.id); }
+            renderTrouble(); updateCharts(); updateKPIs();
+          });
+          comp.addEventListener('click', ()=> {
+            t.progress = 100; t.status = 'COMPLETED';
+            announce(`${t.id} marked completed`);
+            addLog('Head O&M','Trouble Completed',t.id);
+            renderTrouble(); updateCharts(); updateKPIs();
+          });
+        }
+      }
+    });
+  }
+
+  function renderMaterials(){
+    tblMaterials.innerHTML = '';
+    window.state.materials.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.id}</td><td>${m.requester}</td><td>${m.item}</td><td>${m.qty}</td><td>${m.unit}</td><td>${m.priority}</td><td>${new Date(m.needed).toLocaleString()}</td><td><span class="status ${m.status==='APPROVED'?'ok':m.status==='REJECTED'?'bad':'pending'}">${m.status}</span></td><td class="actions"></td>`;
+      tblMaterials.appendChild(tr);
+      const actions = tr.querySelector('td.actions');
+
+      if(m.status === 'PENDING'){
+        const approve = document.createElement('button'); approve.className='pill approve'; approve.textContent='Approve';
+        const reject = document.createElement('button'); reject.className='pill reject'; reject.textContent='Reject';
+        const assignSel = document.createElement('select'); assignSel.innerHTML = `<option value="">Assign team</option>` + teams.map(t=>`<option>${t}</option>`).join('');
+        actions.appendChild(approve); actions.appendChild(reject); actions.appendChild(assignSel);
+
+        approve.addEventListener('click', ()=>{
+          m.status = 'APPROVED'; m.decidedBy = 'Head O&M'; m.decidedAt = now();
+          const team = assignSel.value;
+          if(team){ addLog('Head O&M','Assigned Material',`${m.id} → ${team}`); announce(`Material ${m.id} approved and assigned to ${team}`); } else { announce(`Material ${m.id} approved`); }
+          // reduce inventory if matching
+          consumeInventory(m.item, m.qty);
+          renderMaterials(); renderInventory(); updateCharts(); updateKPIs();
+        });
+        reject.addEventListener('click', ()=>{
+          m.status = 'REJECTED'; m.decidedBy = 'Head O&M'; m.decidedAt = now();
+          announce(`Material ${m.id} rejected`);
+          addLog('Head O&M','Rejected Material',m.id);
+          renderMaterials(); updateCharts(); updateKPIs();
+        });
+      } else {
+        const info = document.createElement('div'); info.style.fontSize='12px'; info.style.color='var(--muted)';
+        info.textContent = `${m.decidedBy || ''} • ${m.decidedAt || ''}`;
+        actions.appendChild(info);
+      }
+    });
+  }
+
+  function renderRepairs(){
+    tblRepairs.innerHTML = '';
+    window.state.repairs.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.id}</td><td>${r.feeder}</td><td>${r.asset}</td><td>${r.fault}</td><td>${r.workshop}</td><td><span class="status ${r.risk==='High'?'bad':r.risk==='Medium'?'warn':'ok'}">${r.risk}</span></td><td>${r.by}</td><td>${r.time}</td><td><span class="status ${r.status==='APPROVED'?'ok':r.status==='REJECTED'?'bad':'pending'}">${r.status}</span></td><td class="actions"></td>`;
+      tblRepairs.appendChild(tr);
+      const actions = tr.querySelector('td.actions');
+
+      if(r.status === 'PENDING'){
+        const approve = document.createElement('button'); approve.className='pill approve'; approve.textContent='Approve';
+        const reject = document.createElement('button'); reject.className='pill reject'; reject.textContent='Reject';
+        const assignSel = document.createElement('select'); assignSel.innerHTML = `<option value="">Assign team</option>` + teams.map(t=>`<option>${t}</option>`).join('');
+        actions.appendChild(approve); actions.appendChild(reject); actions.appendChild(assignSel);
+        approve.addEventListener('click', ()=> {
+          r.status = 'APPROVED'; r.decidedBy = 'Head O&M'; r.decidedAt = now();
+          const team = assignSel.value;
+          if(team){ addLog('Head O&M','Assigned Repair',`${r.id} → ${team}`); announce(`Repair ${r.id} approved and assigned to ${team}`); } else { announce(`Repair ${r.id} approved`); }
+          // create tracking entry
+          createTracking({asset:r.asset, workshop:r.workshop, status:'Queued', progress:0, tech: team || 'Workshop Team', eta:new Date(Date.now()+5*24*3600000).toLocaleString()});
+          renderRepairs(); renderTrack(); updateCharts(); updateKPIs();
+        });
+        reject.addEventListener('click', ()=> {
+          r.status = 'REJECTED'; r.decidedBy = 'Head O&M'; r.decidedAt = now();
+          announce(`Repair ${r.id} rejected`);
+          addLog('Head O&M','Rejected Repair',r.id);
+          renderRepairs(); updateCharts(); updateKPIs();
+        });
+      } else {
+        const info = document.createElement('div'); info.style.fontSize='12px'; info.style.color='var(--muted)';
+        info.textContent = `${r.decidedBy || ''} • ${r.decidedAt || ''}`;
+        actions.appendChild(info);
+      }
+    });
+  }
+
+  function renderTrack(){
+    tblTrack.innerHTML = '';
+    window.state.transformers.forEach(tr => {
+      const trEl = document.createElement('tr');
+      trEl.innerHTML = `<td>${tr.asset}</td><td>${tr.workshop}</td><td><span class="status ${tr.status==='Completed'?'ok':tr.status==='In Repair'?'warn':'pending'}">${tr.status}</span></td><td><div class="progress"><i style="width:${tr.progress}%"></i></div></td><td>${tr.started}</td><td>${tr.eta}</td><td class="actions"></td>`;
+      tblTrack.appendChild(trEl);
+      const actions = trEl.querySelector('td.actions');
+      const inc = document.createElement('button'); inc.className='pill'; inc.textContent='+10%';
+      const dec = document.createElement('button'); dec.className='pill'; dec.textContent='-10%';
+      const transfer = document.createElement('button'); transfer.className='pill assign'; transfer.textContent='Transfer';
+      const complete = document.createElement('button'); complete.className='pill approve'; complete.textContent='Mark Complete';
+      actions.appendChild(inc); actions.appendChild(dec); actions.appendChild(transfer); actions.appendChild(complete);
+
+      inc.addEventListener('click', ()=> {
+        tr.progress = Math.min(100, tr.progress + 10);
+        tr.status = tr.progress >= 100 ? 'Completed' : 'In Repair';
+        if(tr.progress >= 100){ announce(`${tr.asset} completed`); addLog('Head O&M','Transformer Completed',tr.asset); }
+        renderTrack(); updateCharts(); updateKPIs();
+      });
+      dec.addEventListener('click', ()=> {
+        tr.progress = Math.max(0, tr.progress - 10); tr.status = 'In Repair';
+        renderTrack(); updateCharts(); updateKPIs();
+      });
+      transfer.addEventListener('click', ()=> {
+        const nxt = prompt('Transfer to workshop:', workshops.join(', '));
+        if(nxt){ tr.workshop = nxt; announce(`${tr.asset} transferred to ${nxt}`); addLog('Head O&M','Transformer Transferred',`${tr.asset} → ${nxt}`); renderTrack(); updateCharts(); updateKPIs(); }
+      });
+      complete.addEventListener('click', ()=> {
+        tr.progress = 100; tr.status = 'Completed';
+        announce(`${tr.asset} marked completed`); addLog('Head O&M','Transformer Completed',tr.asset);
+        renderTrack(); updateCharts(); updateKPIs();
+      });
+    });
+  }
+
+  function renderInventory(){
+    tblInv.innerHTML = '';
+    window.state.inventory.forEach(item => {
+      const level = item.qty <= 0 ? 'Critical' : (item.qty <= (item.lowThreshold||10) ? 'Low' : 'OK');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${item.name}</td><td>${item.sku}</td><td>${item.unit}</td><td>${item.qty}</td><td><span class="status ${level==='OK'?'ok':level==='Low'?'warn':'bad'}">${level}</span></td><td class="actions"></td>`;
+      tblInv.appendChild(tr);
+      const actions = tr.querySelector('td.actions');
+      const refill = document.createElement('button'); refill.className='pill'; refill.textContent='Request Refill';
+      const add = document.createElement('button'); add.className='pill'; add.textContent='+Add';
+      actions.appendChild(refill); actions.appendChild(add);
+      refill.addEventListener('click', ()=>{
+        // pre-fill material modal
+        $('#matRequester').value = 'Stores';
+        $('#matItem').value = item.name;
+        $('#matQty').value = Math.max(item.lowThreshold*2, 50);
+        $('#matUnit').value = item.unit;
+        $('#matPriority').value = 'Medium';
+        $('#matNeeded').value = new Date(Date.now()+2*24*3600000).toISOString().slice(0,16);
+        openModal(modalMat);
+      });
+      add.addEventListener('click', ()=>{
+        const q = Number(prompt('Add quantity:', '50')) || 0;
+        item.qty += q;
+        announce(`${q} ${item.unit} added to ${item.name}`);
+        renderInventory(); updateKPIs();
+      });
+    });
+  }
+
+  /* -------------------------
+     Inventory consumption helper
+  --------------------------*/
+  function consumeInventory(name, qty){
+    for(const it of window.state.inventory){
+      if(it.name.toLowerCase().includes(name.toLowerCase()) || it.sku.toLowerCase().includes(name.toLowerCase())){
+        it.qty = Math.max(0, it.qty - Number(qty));
+        renderInventory(); return;
+      }
+    }
+    // no matching SKU found — ignore (in real system map SKUs)
+  }
+
+  /* -------------------------
+     KPIs & Charts
+  --------------------------*/
+  let regionsChart, workshopsChart, matStatusChart, repLineChart;
+  function initCharts(){
+    try{
+      regionsChart = new Chart($('#chartRegions').getContext('2d'), {
+        type:'bar',
+        data:{ labels: regions, datasets:[{ label:'Reports', data: regions.map(()=>0), backgroundColor:'rgba(255,212,77,0.85)' }] },
+        options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+      });
+      workshopsChart = new Chart($('#chartWorkshops').getContext('2d'), {
+        type:'bar',
+        data:{ labels: workshops, datasets:[{ label:'Transformers', data: workshops.map(()=>0), backgroundColor:'rgba(19,179,107,0.85)' }] },
+        options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+      });
+      matStatusChart = new Chart($('#chartMatStatus').getContext('2d'), {
+        type:'pie',
+        data:{ labels:['Pending','Approved','Rejected'], datasets:[{ data:[0,0,0], backgroundColor:['rgba(255,206,86,0.9)','rgba(75,192,192,0.9)','rgba(231,76,60,0.9)'] }]},
+        options:{ plugins:{legend:{position:'bottom'}}}
+      });
+      repLineChart = new Chart($('#chartRepLine').getContext('2d'), {
+        type:'line',
+        data:{ labels: Array.from({length:12},(_,i)=>i+1), datasets:[{ label:'Repairs over time', data: Array.from({length:12},()=>rand(0,6)), tension:0.3, borderColor:'rgba(75,192,192,0.9)', backgroundColor:'rgba(75,192,192,0.12)', fill:true }]},
+        options:{ plugins:{legend:{display:false}}}
+      });
+
+      updateCharts();
+    }catch(e){ console.warn('initCharts', e); }
+  }
+
+  function updateCharts(){
+    try{
+      // Regions chart
+      regionsChart.data.datasets[0].data = regions.map(r => window.state.trouble.filter(t => t.region === r).length);
+      regionsChart.update('none');
+      // Workshops chart
+      workshopsChart.data.datasets[0].data = workshops.map(w => window.state.transformers.filter(t => t.workshop === w).length);
+      workshopsChart.update('none');
+      // Material status
+      const pending = window.state.materials.filter(m=>m.status==='PENDING').length;
+      const approved = window.state.materials.filter(m=>m.status==='APPROVED').length;
+      const rejected = window.state.materials.filter(m=>m.status==='REJECTED').length;
+      matStatusChart.data.datasets[0].data = [pending, approved, rejected];
+      matStatusChart.update('none');
+      // Repair line push point
+      repLineChart.data.labels.push(new Date().toLocaleTimeString());
+      repLineChart.data.datasets[0].data.push(rand(0,6));
+      if(repLineChart.data.labels.length > 24){ repLineChart.data.labels.shift(); repLineChart.data.datasets[0].data.shift(); }
+      repLineChart.update('none');
+    }catch(e){ console.warn('updateCharts', e); }
+  }
+
+  function updateKPIs(){
+    $('#kpiTR').textContent = window.state.trouble.filter(t => t.status !== 'COMPLETED' && t.status !== 'REJECTED').length;
+    $('#kpiMatPending').textContent = window.state.materials.filter(m => m.status === 'PENDING').length;
+    $('#kpiInRepair').textContent = window.state.transformers.filter(tr => tr.status !== 'Completed').length;
+    $('#kpiLowItems').textContent = window.state.inventory.filter(i => i.qty <= (i.lowThreshold||10)).length;
+  }
+
+  /* -------------------------
+     Simple event log
+  --------------------------*/
+  function addLog(actor, action, detail){
+    console.log({time:now(), actor, action, detail});
+    // TODO: persist to backend or show in a log panel
+  }
+
+  /* -------------------------
+     UI interactions: nav, search, modals
+  --------------------------*/
+  navBtns.forEach(btn => btn.addEventListener('click', ()=>{
+    navBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tgt = btn.dataset.target;
+    views.forEach(v => v.style.display = (v.id === tgt) ? '' : 'none');
+  }));
+
+  globalSearch.addEventListener('input', e=>{
+    const q = (e.target.value||'').toLowerCase();
+    ['#tblTR','#tblMaterials','#tblRepairs','#tblTrack','#tblInv'].forEach(sel=>{
+      const t = document.querySelector(sel);
+      if(!t) return;
+      t.querySelectorAll('tbody tr').forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none');
+    });
+  });
+
+  function openModal(m){ m.style.display = 'flex'; }
+  function closeModal(m){ m.style.display = 'none'; }
+
+  $('#openMatForm').addEventListener('click', ()=> openModal(modalMat));
+  $('#closeMat').addEventListener('click', ()=> closeModal(modalMat));
+  $('#openRepairForm').addEventListener('click', ()=> openModal(modalRepair));
+  $('#closeRep').addEventListener('click', ()=> closeModal(modalRepair));
+  $('#addInv').addEventListener('click', ()=> openModal(modalInv));
+  $('#closeInv').addEventListener('click', ()=> closeModal(modalInv));
+
+  $('#saveMat').addEventListener('click', ()=>{
+    const requester = $('#matRequester').value || 'Unknown';
+    const item = $('#matItem').value || 'Other';
+    const qty = Number($('#matQty').value) || 1;
+    const unit = $('#matUnit').value || 'pcs';
+    const priority = $('#matPriority').value || 'Low';
+    const needed = $('#matNeeded').value || new Date().toISOString().slice(0,16);
+    const notes = $('#matPurpose').value || '';
+    createMaterial({requester,item,qty,unit,priority,needed,notes}, false);
+    closeModal(modalMat);
+    $('#matRequester').value=''; $('#matQty').value=''; $('#matUnit').value=''; $('#matPurpose').value='';
+  });
+
+  $('#saveRep').addEventListener('click', ()=>{
+    const feeder = $('#repFeeder').value || 'Unknown';
+    const asset = $('#repAsset').value || 'TR-'+uid();
+    const workshop = $('#repWorkshop').value || 'Internal Workshop';
+    const risk = $('#repRisk').value || 'Low';
+    const by = $('#repBy').value || 'Unknown';
+    const fault = $('#repFault').value || '';
+    createRepair({feeder,asset,workshop,risk,by,fault}, false);
+    closeModal(modalRepair);
+    $('#repFeeder').value=''; $('#repAsset').value=''; $('#repFault').value='';
+  });
+
+  $('#saveInv').addEventListener('click', ()=>{
+    const name = $('#invName').value || 'Unknown';
+    const sku = $('#invSKU').value || 'SKU-'+uid();
+    const unit = $('#invUnit').value || 'pcs';
+    const qty = Number($('#invQty').value) || 0;
+    window.state.inventory.unshift({name, sku, unit, qty, lowThreshold:Math.max(5, Math.floor(qty*0.2))});
+    renderInventory(); closeModal(modalInv); updateKPIs();
+  });
+
+  /* -------------------------
+     Create / action helpers
+  --------------------------*/
+  // Materials
+  function createMaterial({requester,item,qty,unit,priority,needed,notes}, approved=false){
+    const req = { id:'MAT-'+uid(), requester:requester||'Unknown', item:item||'Other', qty: Number(qty)||1, unit:unit||'pcs', priority:priority||'Low', needed: needed||new Date().toISOString().slice(0,16), notes:notes||'', status: approved ? 'APPROVED' : 'PENDING', decidedBy: approved? 'Head O&M' : '', decidedAt: approved? now():''};
+    window.state.materials.unshift(req);
+    if(approved) { consumeInventory(req.item, req.qty); }
+    renderMaterials(); renderInventory(); updateCharts(); updateKPIs();
+    announce(approved? `Material ${req.id} approved` : `New material request ${req.id} created`);
+    return req;
+  }
+
+  // Repairs
+  function createRepair({feeder,asset,workshop,risk,by,fault}, approved=false){
+    const r = { id:'RPR-'+uid(), feeder:feeder||'Unknown', asset:asset||'TR-'+uid(), workshop:workshop||'Internal Workshop', risk:risk||'Low', by:by||'Unknown', time:now(), fault:fault||'', status: approved ? 'APPROVED': 'PENDING', decidedBy:approved? 'Head O&M' : '', decidedAt:approved? now():''};
+    window.state.repairs.unshift(r);
+    if(approved){
+      createTracking({asset:r.asset, workshop:r.workshop, status:'Queued', progress:0, tech:'Workshop Team', eta:new Date(Date.now()+5*24*3600000).toLocaleString()});
+    }
+    renderRepairs(); updateCharts(); updateKPIs();
+    announce(approved? `Repair ${r.id} approved` : `New repair request ${r.id}`);
+    return r;
+  }
+
+  // Tracking
+  function createTracking({asset,workshop,status,progress,tech,eta}){
+    const t = { id:'T-'+uid(), asset:asset||'TR-'+uid(), workshop:workshop||'Internal Workshop', status:status||'Queued', progress: Number(progress)||0, tech: tech||'', started: new Date().toLocaleString(), eta: eta||new Date(Date.now()+7*24*3600000).toLocaleString()};
+    window.state.transformers.unshift(t);
+    renderTrack(); updateCharts(); updateKPIs();
+    return t;
+  }
+
+  /* -------------------------
+     Simulation buttons
+  --------------------------*/
+  $('#sampleTR').addEventListener('click', ()=> {
+    const t = { id:'TR-'+uid(), region: regions[rand(0,regions.length-1)], issue:['Transformer Tripping','Low Voltage','Pole Down','Burning Smell'][rand(0,3)], asset: chance(0.6)? 'Transformer':'Breaker', priority:['Low','Medium','High'][rand(0,2)], reportedBy:['Engr. Musa','Engr. Hauwa'][rand(0,1)], time:now(), status:'PENDING', assignedTo:'', assignedAt:'', remarks:'', progress:0};
+    window.state.trouble.unshift(t); renderTrouble(); updateCharts(); announce('New Trouble Report Pending Approval');
+  });
+
+  $('#sampleMat').addEventListener('click', ()=> {
+    createMaterial({requester:'Engr. Sample', item:'Armored Cable - 50mm', qty:100, unit:'meters', priority:'Medium', needed:new Date(Date.now()+2*86400000).toISOString().slice(0,16)}, false);
+  });
+
+  $('#sampleRepair').addEventListener('click', ()=> {
+    createRepair({feeder: regions[rand(0,regions.length-1)], asset:'TR-'+uid(), workshop: workshops[rand(0,workshops.length-1)], risk:'Medium', by:'Engr. Sample', fault:'Sample fault'}, false);
+  });
+
+  $('#loadSampleInv').addEventListener('click', ()=> {
+    window.state.inventory = sampleInventory.map(i=>({...i}));
+    renderInventory(); announce('Sample inventory loaded'); updateKPIs();
+  });
+
+  $('#createSample').addEventListener('click', ()=> {
+    $('#sampleTR').click(); $('#sampleMat').click(); $('#sampleRepair').click(); updateCharts(); announce('Sample events created');
+  });
+
+  $('#simulateAll').addEventListener('click', ()=> {
+    for(let i=0;i<4;i++){ $('#sampleTR').click(); }
+    createMaterial({requester:'Batch', item:'Fuse (type A)', qty:200, unit:'pcs', priority:'Medium', needed:new Date().toISOString().slice(0,16)}, false);
+    updateCharts(); announce('Batch simulation complete');
+  });
+
+  /* -------------------------
+     Periodic simulation (live feel)
+  --------------------------*/
+  setInterval(()=> { if(Math.random() < 0.35){ $('#sampleTR').click(); updateCharts(); } }, 11000);
+  setInterval(()=> { if(Math.random() < 0.3){ $('#sampleMat').click(); updateCharts(); } }, 14000);
+
+  /* -------------------------
+     Renderers initial call + utils
+  --------------------------*/
+  function renderAll(){ renderTrouble(); renderMaterials(); renderRepairs(); renderTrack(); renderInventory(); updateCharts(); updateKPIs(); }
+  function renderInventory(){ renderInventory(); } // alias placeholder
+
+  // To avoid double-definition of functions, define renderInventory separately
+  function renderInventory(){ tblInv.innerHTML=''; window.state.inventory.forEach(item => {
+    const level = item.qty <= 0 ? 'Critical' : (item.qty <= (item.lowThreshold||10) ? 'Low' : 'OK');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${item.name}</td><td>${item.sku}</td><td>${item.unit}</td><td>${item.qty}</td><td><span class="status ${level==='OK'?'ok':level==='Low'?'warn':'bad'}">${level}</span></td><td class="actions"></td>`;
+    tblInv.appendChild(tr);
+    const actions = tr.querySelector('td.actions');
+    const refill = document.createElement('button'); refill.className='pill'; refill.textContent='Request Refill';
+    const add = document.createElement('button'); add.className='pill'; add.textContent='+Add';
+    actions.appendChild(refill); actions.appendChild(add);
+    refill.addEventListener('click', ()=> {
+      $('#matRequester').value='Stores'; $('#matItem').value=item.name; $('#matQty').value=Math.max(item.lowThreshold*2,50); $('#matUnit').value=item.unit; $('#matPriority').value='Medium';
+      $('#matNeeded').value=new Date(Date.now()+2*24*3600000).toISOString().slice(0,16); openModal(modalMat);
+    });
+    add.addEventListener('click', ()=> {
+      const q = Number(prompt('Add quantity:', '50')) || 0; item.qty += q; announce(`${q} ${item.unit} added to ${item.name}`); renderInventory(); updateKPIs();
+    });
+  }); updateKPIs(); }
+
+  /* -------------------------
+     Utility functions already used earlier
+  --------------------------*/
+  function addLog(actor, action, detail){ console.log({time:now(), actor, action, detail}); }
+  function openModal(m){ m.style.display = 'flex'; }
+  function closeModal(m){ m.style.display = 'none'; }
+
+  // Hook modal buttons
+  $('#openMatForm').addEventListener('click', ()=> openModal(modalMat));
+  $('#closeMat').addEventListener('click', ()=> closeModal(modalMat));
+  $('#openRepairForm').addEventListener('click', ()=> openModal(modalRepair));
+  $('#closeRep').addEventListener('click', ()=> closeModal(modalRepair));
+  $('#addInv').addEventListener('click', ()=> openModal(modalInv));
+  $('#closeInv').addEventListener('click', ()=> closeModal(modalInv));
+
+  /* -------------------------
+     Clock + init
+  --------------------------*/
+  function tick(){
+    const s = new Date().toLocaleString();
+    topNow.textContent = s;
+    $('#subclock').textContent = 'Real-time sample demo — ' + s;
+    $('#yearSmall').textContent = new Date().getFullYear();
+  }
+  setInterval(tick,1000); tick();
+
+  // Initialize seed, renderers and charts
+  seedAll();
+  renderAll();
+  initCharts();
+
+  // Expose for debugging in console
+  window.createMaterial = createMaterial;
+  window.createRepair = createRepair;
+  window.createTracking = createTracking;
+  window.addTroubleSample = ()=> $('#sampleTR').click();
+
+  /* -------------------------
+     NOTES / TODO
+     - TODO: Add authentication for Head O&M role (enforce only Head O&M can approve/assign).
+     - TODO: Persist state to backend (APIs), audit logs, and real user management.
+     - TODO: Improve transfer UX (modal with validation).
+  --------------------------*/
+})();
+</script>
+</body>
+</html>

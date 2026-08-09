@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEDCO Technical Department</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --kedco-blue: #003366;
+            --kedco-gold: #FFCC00;
+            --kedco-light: #f8f9fa;
+            --kedco-dark: #212529;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--kedco-light);
+            color: var(--kedco-dark);
+            line-height: 1.6;
+        }
+        
+        /* Header & Navigation */
+        header {
+            background-color: var(--kedco-blue);
+            color: white;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo img {
+            height: 50px;
+            margin-right: 15px;
+        }
+        
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        
+        nav ul li {
+            margin-left: 1.5rem;
+            position: relative;
+        }
+        
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            transition: var(--transition);
+        }
+        
+        nav ul li a:hover {
+            color: var(--kedco-gold);
+        }
+        
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: var(--shadow);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .dropdown-content a {
+            color: var(--kedco-dark);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: var(--transition);
+        }
+        
+        .dropdown-content a:hover {
+            background-color: var(--kedco-light);
+            color: var(--kedco-blue);
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Login Form */
+        .login-container {
+            position: relative;
+        }
+        
+        .login-btn {
+            background-color: var(--kedco-gold);
+            color: var(--kedco-blue);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        
+        .login-btn:hover {
+            background-color: #e6b800;
+        }
+        
+        .login-form {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            width: 300px;
+            z-index: 1000;
+            margin-top: 10px;
+        }
+        
+        .login-form h3 {
+            color: var(--kedco-blue);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .login-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--kedco-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        
+        .login-form button:hover {
+            background-color: #002244;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        /* Hero Section */
+        .hero {
+            position: relative;
+            height: 500px;
+            overflow: hidden;
+        }
+        
+        .slideshow {
+            height: 100%;
+            position: relative;
+        }
+        
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .slide.active {
+            opacity: 1;
+        }
+        
+        .slide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 51, 102, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 0 20px;
+        }
+        
+        .slide-overlay h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .slide-overlay p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin-bottom: 2rem;
+        }
+        
+        .cta-button {
+            background-color: var(--kedco-gold);
+            color: var(--kedco-blue);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .cta-button:hover {
+            background-color: #e6b800;
+            transform: translateY(-2px);
+        }
+        
+        /* Dashboard Section */
+        .dashboard {
+            padding: 4rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--kedco-blue);
+            position: relative;
+        }
+        
+        .section-title:after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background-color: var(--kedco-gold);
+            margin: 15px auto;
+            border-radius: 2px;
+        }
+        
+        .widgets-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .widget {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+        
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        
+        .widget-title {
+            font-size: 1.2rem;
+            color: var(--kedco-blue);
+            font-weight: 600;
+        }
+        
+        .widget-icon {
+            color: var(--kedco-gold);
+            font-size: 1.5rem;
+        }
+        
+        .widget-content {
+            height: 200px;
+        }
+        
+        /* Charts Section */
+        .charts {
+            padding: 4rem 2rem;
+            background-color: #f1f5f9;
+        }
+        
+        .charts-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+        }
+        
+        .chart-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        
+        .chart-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--kedco-blue);
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: var(--kedco-blue);
+            color: white;
+            padding: 3rem 2rem;
+        }
+        
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        
+        .footer-logo {
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .footer-logo span {
+            color: var(--kedco-gold);
+        }
+        
+        .footer-about {
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-heading {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+        
+        .footer-heading:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 40px;
+            height: 3px;
+            background-color: var(--kedco-gold);
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+        
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .footer-links a:hover {
+            color: var(--kedco-gold);
+            padding-left: 5px;
+        }
+        
+        .footer-contact-item {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-contact-icon {
+            color: var(--kedco-gold);
+            margin-right: 10px;
+            margin-top: 4px;
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 2rem;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            nav ul {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .mobile-nav {
+                position: fixed;
+                top: 0;
+                right: -300px;
+                width: 300px;
+                height: 100vh;
+                background-color: var(--kedco-blue);
+                z-index: 1001;
+                padding: 2rem;
+                transition: var(--transition);
+            }
+            
+            .mobile-nav.active {
+                right: 0;
+            }
+            
+            .mobile-nav ul {
+                list-style: none;
+                margin-top: 2rem;
+            }
+            
+            .mobile-nav ul li {
+                margin-bottom: 1.5rem;
+            }
+            
+            .mobile-nav ul li a {
+                color: white;
+                text-decoration: none;
+                font-size: 1.2rem;
+                font-weight: 500;
+                display: block;
+                padding: 0.5rem 0;
+            }
+            
+            .close-menu {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero {
+                height: 400px;
+            }
+            
+            .slide-overlay h2 {
+                font-size: 2rem;
+            }
+            
+            .slide-overlay p {
+                font-size: 1rem;
+            }
+            
+            .widgets-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .logo {
+                margin-bottom: 1rem;
+            }
+            
+            .login-form {
+                width: 280px;
+                right: -70px;
+            }
+            
+            .hero {
+                height: 350px;
+            }
+            
+            .slide-overlay h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiMwMDMzNjYiIHJ4PSI1IiByeT0iNSIvPjxwYXRoIGQ9Ik0zMCAzMEg3MFY3MEgzMFYzMHoiIGZpbGw9IiNGRkNDMDAiLz48cGF0aCBkPSJNNDAgNDBINjBWNjBINDBWNDBaIiBmaWxsPSIjMDAzMzY2Ii8+PC9zdmc+" alt="KEDCO Logo">
+                <h1>KEDCO Technical Department</h1>
+            </div>
+            
+            <nav>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li class="dropdown">
+                        <a href="#">Units</a>
+                        <div class="dropdown-content">
+                            <a href="#">HSE</a>
+                            <a href="#">Maintenance</a>
+                            <a href="#">PCM</a>
+                            <a href="#">Operations</a>
+                            <a href="#">MIS</a>
+                            <a href="#">Planning</a>
+                            <a href="#">HSOP</a>
+                        </div>
+                    </li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">About</a></li>
+                </ul>
+            </nav>
+            
+            <div class="login-container">
+                <button class="login-btn" id="loginButton"><i class="fas fa-user"></i> Login</button>
+                <div class="login-form" id="loginForm">
+                    <h3>Technical Department Login</h3>
+                    <input type="text" id="username" placeholder="Username">
+                    <input type="password" id="password" placeholder="Password">
+                    <button id="submitLogin">Login</button>
+                    <div class="error-message" id="errorMessage">Invalid credentials. Please try again.</div>
+                </div>
+            </div>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+    
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobileNav">
+        <button class="close-menu" id="closeMenu">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <!-- Hero Section with Slideshow -->
+    <section class="hero">
+        <div class="slideshow">
+            <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1629909613654-28e377c8f5a0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');">
+                <div class="slide-overlay">
+                    <h2>Powering Progress Through Excellence</h2>
+                    <p>KEDCO Technical Department ensures reliable electricity supply across our network with state-of-the-art technology and skilled professionals.</p>
+                    <button class="cta-button">Learn More</button>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');">
+                <div class="slide-overlay">
+                    <h2>Substation Maintenance Excellence</h2>
+                    <p>Our team performs regular maintenance and upgrades to ensure substation reliability and safety.</p>
+                    <button class="cta-button">Our Projects</button>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');">
+                <div class="slide-overlay">
+                    <h2>Advanced Grid Monitoring</h2>
+                    <p>Real-time SCADA systems provide continuous monitoring of our electrical network for optimal performance.</p>
+                    <button class="cta-button">View Dashboard</button>
+                </div>
+            </div>
+            <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1562403249-0b77a40c2c68?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');">
+                <div class="slide-overlay">
+                    <h2>Field Engineering Expertise</h2>
+                    <p>Our field engineers work tirelessly to maintain and repair infrastructure across the distribution network.</p>
+                    <button class="cta-button">Meet Our Team</button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Dashboard Section -->
+    <section class="dashboard">
+        <h2 class="section-title">Operational Dashboard</h2>
+        
+        <div class="widgets-container">
+            <div class="widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">Inventory Status</h3>
+                    <i class="widget-icon fas fa-boxes"></i>
+                </div>
+                <div class="widget-content">
+                    <canvas id="inventoryChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">Feeder Performance</h3>
+                    <i class="widget-icon fas fa-bolt"></i>
+                </div>
+                <div class="widget-content">
+                    <canvas id="feederChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">Transformer Repairs</h3>
+                    <i class="widget-icon fas fa-tools"></i>
+                </div>
+                <div class="widget-content">
+                    <canvas id="transformerChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Charts Section -->
+    <section class="charts">
+        <h2 class="section-title">Performance Metrics</h2>
+        
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3 class="chart-title">Energy Supply Statistics</h3>
+                <canvas id="energyChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">Fault Response Metrics</h3>
+                <canvas id="faultChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">Material Usage Trends</h3>
+                <canvas id="materialChart"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">Inventory Trends</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-about">
+                <div class="footer-logo">KED<span>CO</span></div>
+                <p>Kano Electricity Distribution Company is committed to providing reliable and efficient electricity supply to our customers.</p>
+            </div>
+            
+            <div class="footer-links">
+                <h3 class="footer-heading">Quick Links</h3>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Units</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-contact">
+                <h3 class="footer-heading">Contact Us</h3>
+                <div class="footer-contact-item">
+                    <i class="footer-contact-icon fas fa-map-marker-alt"></i>
+                    <p>177 Niger Street, Kano, Nigeria</p>
+                </div>
+                <div class="footer-contact-item">
+                    <i class="footer-contact-icon fas fa-phone"></i>
+                    <p>+234 80 39644052</p>
+                </div>
+                <div class="footer-contact-item">
+                    <i class="footer-contact-icon fas fa-envelope"></i>
+                    <p>info@kedcotechnical.com</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            <p>&copy; 2023 Kano Electricity Distribution Company (KEDCO). All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Login Functionality
+        document.getElementById('loginButton').addEventListener('click', function() {
+            const loginForm = document.getElementById('loginForm');
+            loginForm.style.display = loginForm.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        document.getElementById('submitLogin').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Predefined users with default password
+            const validUsers = [
+                'hse@kedco.com',
+                'soperation@kedco.com',
+                'mis@kedco.com',
+                'pcm@kedco.com',
+                'maintenance@kedco.com',
+                'planning@kedco.com',
+                'hsop@keedco.com',
+                'sinventory@kedco.com'  // Added new user
+            ];
+            
+            if (validUsers.includes(username) && password === '1234567') {
+                // Successful login - redirect to appropriate page
+                const usernamePrefix = username.split('@')[0];
+                
+                // Check if user is sinventory and redirect to store-inventory.html
+                if (username === 'sinventory@kedco.com') {
+                    window.location.href = 'store-inventory.html';
+                } else {
+                    window.location.href = usernamePrefix + '.html';
+                }
+            } else {
+                // Show error message
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
+            }
+        });
+        
+        // Mobile Menu Functionality
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            document.getElementById('mobileNav').classList.add('active');
+        });
+        
+        document.getElementById('closeMenu').addEventListener('click', function() {
+            document.getElementById('mobileNav').classList.remove('active');
+        });
+        
+        // Slideshow Functionality
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+        
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+        
+        // Change slide every 5 seconds
+        setInterval(nextSlide, 5000);
+        
+        // Charts Initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inventory Chart
+            const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+            new Chart(inventoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Transformers', 'Cables', 'Meters', 'Poles', 'Insulators'],
+                    datasets: [{
+                        data: [25, 18, 35, 12, 10],
+                        backgroundColor: [
+                            '#003366', '#FFCC00', '#4CAF50', '#F44336', '#9C27B0'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Feeder Performance Chart
+            const feederCtx = document.getElementById('feederChart').getContext('2d');
+            new Chart(feederCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Feeder A', 'Feeder B', 'Feeder C', 'Feeder D', 'Feeder E'],
+                    datasets: [{
+                        label: 'Uptime (%)',
+                        data: [98, 92, 95, 89, 97],
+                        backgroundColor: '#003366'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Transformer Repairs Chart
+            const transformerCtx = document.getElementById('transformerChart').getContext('2d');
+            new Chart(transformerCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Repairs Completed',
+                        data: [12, 19, 15, 17, 14, 18],
+                        borderColor: '#FFCC00',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Energy Supply Chart
+            const energyCtx = document.getElementById('energyChart').getContext('2d');
+            new Chart(energyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Energy Supplied (MWh)',
+                        data: [12500, 13200, 14100, 14800, 15600, 16400],
+                        backgroundColor: '#003366'
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Fault Response Chart
+            const faultCtx = document.getElementById('faultChart').getContext('2d');
+            new Chart(faultCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['< 1 hour', '1-4 hours', '4-12 hours', '12-24 hours', '> 24 hours'],
+                    datasets: [{
+                        data: [45, 30, 15, 7, 3],
+                        backgroundColor: [
+                            '#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#F44336'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Material Usage Chart
+            const materialCtx = document.getElementById('materialChart').getContext('2d');
+            new Chart(materialCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Cables (km)',
+                        data: [12, 15, 13, 17, 16, 19],
+                        borderColor: '#003366',
+                        tension: 0.1,
+                        fill: false
+                    }, {
+                        label: 'Transformers',
+                        data: [8, 10, 9, 11, 12, 14],
+                        borderColor: '#FFCC00',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Inventory Trends Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Stock Level',
+                        data: [85, 78, 82, 79, 88, 84],
+                        backgroundColor: '#4CAF50'
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        });
+    </script>
+</body>
+</html>

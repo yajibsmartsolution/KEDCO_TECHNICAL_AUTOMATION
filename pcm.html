@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KEDCO PC&M — Equipment Test Assurance & Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#062913;        /* dark green */
+      --panel:#0b3d20;     /* deep panel */
+      --gold:#ffd44d;      /* gold accent */
+      --text:#eef6ea;      /* light text */
+      --muted:#b9c8b3;
+      --accent:#13b36b;
+      --primary:#13b36b;   /* Updated to match accent */
+      --secondary:#0b3d20; /* Updated to match panel */
+      --danger:#dc3545;
+      --warning:#ffc107;
+      --info:#17a2b8;
+      --radius:14px;
+      --shadow: 0 12px 30px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; font-family:Inter,system-ui,Arial,sans-serif; background:linear-gradient(180deg,var(--bg), #041a10); color:var(--text);}
+    .container{min-height:100vh; display:grid; grid-template-rows:auto 1fr auto;}
+
+    /* TOP HEADER */
+    .top-header{
+      background:linear-gradient(90deg,var(--panel), #08341c);
+      padding:12px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow:var(--shadow);
+      gap:12px;
+    }
+    .top-left{display:flex;align-items:center;gap:12px}
+    .top-left .logo{width:44px;height:44px;border-radius:8px;background:conic-gradient(from 150deg, var(--gold), #fff2b0);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+    .top-header h2{margin:0;font-size:18px;font-weight:800;color:var(--gold)}
+    .logout-btn{
+      background:linear-gradient(90deg, #e74c3c, #ff6b6b);
+      border:none;
+      padding:8px 14px;
+      border-radius:8px;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .logout-btn:hover{opacity:0.9}
+
+    .app{display:grid; grid-template-columns:300px 1fr; gap:20px; padding:22px}
+
+    /* SIDEBAR */
+    aside{background:linear-gradient(180deg,var(--panel), #082a18); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,.03); box-shadow:var(--shadow); position:sticky; top:20px; height:calc(100vh - 140px)}
+    .brand{display:flex; align-items:center; gap:12px}
+    .brand h1{font-size:16px;margin:0}
+    nav{margin-top:20px; display:flex; flex-direction:column; gap:8px}
+    .nav-btn{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.03);background:transparent;color:var(--text);cursor:pointer;transition:all .14s}
+    .nav-btn:hover{transform:translateY(-3px); box-shadow:0 8px 18px rgba(0,0,0,.35)}
+    .nav-btn.active{background:linear-gradient(90deg, rgba(255,212,77,.06), rgba(19,179,107,.03));border-color:rgba(255,212,77,.12)}
+    .nav-ic{width:24px;text-align:center}
+    .sidebar-foot{position:absolute;bottom:20px;left:20px;right:20px;font-size:12px;color:var(--muted)}
+
+    /* MAIN */
+    main{padding:6px 0}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .hdr-left{display:flex;align-items:center;gap:12px}
+    .live-badge{background:var(--gold);color:#05210d;padding:6px 10px;border-radius:999px;font-weight:700}
+    .clock{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px}
+    .btn{padding:10px 14px;border-radius:10px;border:0;background:transparent;color:var(--text);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg, var(--accent), #2ed88e); color:#05210d; font-weight:700}
+
+    /* GRID + CARDS */
+    .grid{display:grid;gap:16px}
+    .cards{grid-template-columns:repeat(3,1fr)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));padding:16px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.04);box-shadow:var(--shadow)}
+    .kpi{font-size:26px;font-weight:800}
+    .muted{color:var(--muted)}
+
+    /* TABLES */
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:left}
+    th{color:var(--muted);font-weight:700}
+    .status{padding:6px 10px;border-radius:999px;font-weight:700}
+    .status.ok{background:rgba(19,179,107,.12);color:#8ef0b9}
+    .status.warn{background:rgba(255,212,77,.12);color:#ffe9a8}
+    .status.bad{background:rgba(231,76,60,.12);color:#ffb1ac}
+
+    .actions{display:flex;gap:8px}
+    .pill{padding:8px 10px;border-radius:999px;border:0;cursor:pointer}
+    .pill.approve{background:rgba(19,179,107,.12);color:var(--accent);font-weight:700}
+    .pill.reject{background:rgba(231,76,60,.12);color:#ff7b7b;font-weight:700}
+    .pill.assign{background:rgba(255,212,77,.08);color:var(--gold);font-weight:700}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* TEST EQUIPMENT STYLES (from Code 1) */
+    .test-categories {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .category-card {
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+        border-top: 4px solid var(--accent);
+        text-align: center;
+    }
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: rgba(255,255,255,0.08);
+    }
+    .category-card i {
+        font-size: 36px;
+        color: var(--gold);
+        margin-bottom: 15px;
+    }
+    .category-card h3 {
+        margin-bottom: 10px;
+        color: var(--gold);
+    }
+    .category-card p {
+        color: var(--muted);
+        font-size: 14px;
+    }
+    .test-selection {
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 25px;
+        margin-bottom: 30px;
+        display: none;
+    }
+    .test-selection.active {
+        display: block;
+    }
+    .test-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .test-item {
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        padding: 15px;
+        border-left: 4px solid var(--accent);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .test-item:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        background: rgba(255,255,255,0.08);
+    }
+    .test-item h4 {
+        color: var(--gold);
+        margin-bottom: 10px;
+    }
+    .test-item p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    .test-item .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge { background-color: rgba(19,179,107,0.2); color: var(--accent); }
+    .badge-oil { background-color: rgba(255,212,77,0.2); color: var(--gold); }
+    .badge-advanced { background-color: rgba(101, 126, 255, 0.2); color: #657eff; }
+    .badge-functional { background-color: rgba(0, 151, 167, 0.2); color: #00bcd4; }
+    .badge-hv { background-color: rgba(220, 53, 69, 0.2); color: var(--danger); }
+    .badge-basic { background-color: rgba(123, 31, 162, 0.2); color: #9c27b0; }
+
+    .test-form, .test-report {
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 25px;
+        display: none;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .test-form.active, .test-report.active {
+        display: block;
+    }
+    .form-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .form-header h3 {
+        color: var(--gold);
+        margin-bottom: 5px;
+    }
+    .form-header p {
+        color: var(--muted);
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text);
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 5px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+        background: rgba(0,0,0,0.2);
+        color: var(--text);
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        border-color: var(--accent);
+        outline: none;
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 30px;
+    }
+    .btn-test {
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-test i {
+        margin-right: 8px;
+    }
+    .btn-primary {
+        background-color: var(--accent);
+        color: #05210d;
+    }
+    .btn-primary:hover {
+        background-color: #2ed88e;
+    }
+    .btn-outline {
+        background-color: transparent;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text);
+    }
+    .btn-outline:hover {
+        background-color: rgba(255,255,255,0.05);
+    }
+    .report-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .report-header h3 {
+        color: var(--gold);
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    .report-header p {
+        color: var(--muted);
+    }
+    .report-details table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+    .report-details th, .report-details td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .report-details th {
+        background-color: rgba(255,255,255,0.05);
+        color: var(--gold);
+        font-weight: 600;
+        width: 30%;
+    }
+    .report-results h4 {
+        color: var(--gold);
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .result-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.05);
+    }
+    .result-item:last-child {
+        border-bottom: none;
+    }
+    .result-label {
+        font-weight: 600;
+        color: var(--text);
+    }
+    .result-value {
+        color: var(--muted);
+    }
+    .report-conclusion {
+        background-color: rgba(255,255,255,0.05);
+        padding: 20px;
+        border-radius: 5px;
+        margin-bottom: 30px;
+    }
+    .report-conclusion h4 {
+        color: var(--gold);
+        margin-bottom: 10px;
+    }
+    .report-status {
+        text-align: center;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 30px;
+        font-weight: 600;
+        font-size: 18px;
+    }
+    .status-pass {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+    }
+    .status-fail {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+    }
+    .report-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+    .back-btn {
+        margin-bottom: 20px;
+        cursor: pointer;
+        color: var(--gold);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+    .back-btn i {
+        margin-right: 8px;
+    }
+    .hidden {
+        display: none;
+    }
+
+    /* Print-Specific Styles */
+    @media print {
+        .no-print, .no-print * {
+            display: none !important;
+        }
+        body * {
+            visibility: hidden;
+        }
+        .test-report, .test-report * {
+            visibility: visible;
+        }
+        .test-report {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            box-shadow: none;
+            border: 1px solid #ccc;
+        }
+        .report-actions {
+            display: none;
+        }
+        .back-btn {
+            display: none;
+        }
+    }
+
+    @media (max-width: 1100px) { 
+        .cards{grid-template-columns:repeat(2,1fr)} 
+        .app{grid-template-columns:1fr} 
+        aside{position:relative;height:auto} 
+        .test-categories, .test-list {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media (max-width: 700px) { 
+        .cards{grid-template-columns:1fr} 
+        header{flex-direction:column;align-items:flex-start} 
+        .app{padding:12px} 
+        .top-header{flex-direction:column;gap:8px} 
+        aside{height:auto} 
+        .test-categories, .test-list, .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-header">
+      <div class="top-left">
+        <div class="logo"></div>
+        <div>
+          <div style="font-weight:700;color:var(--muted);font-size:12px">Kano Electricity Distribution Company</div>
+          <h2>KEDCO PC&M Unit — Live Dashboard</h2>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="topClock" class="clock" style="min-width:220px;text-align:right"></div>
+        <button class="logout-btn" onclick="window.location.href='index.html'">Logout</button>
+      </div>
+    </div>
+
+    <div class="app">
+      <aside>
+        <div class="brand"><div class="logo" style="width:36px;height:36px"></div><h1>KEDCO PC&M</h1></div>
+        <nav>
+          <button class="nav-btn active" data-target="overview"><span class="nav-ic">🏠</span> Overview</button>
+          <button class="nav-btn" data-target="protection"><span class="nav-ic">🛡️</span> Protection</button>
+          <button class="nav-btn" data-target="control"><span class="nav-ic">🎛️</span> Control</button>
+          <button class="nav-btn" data-target="metering"><span class="nav-ic">📏</span> Metering</button>
+          <button class="nav-btn" data-target="equipment"><span class="nav-ic">🧰</span> Test Equipment</button>
+          <button class="nav-btn" data-target="trouble"><span class="nav-ic">🚨</span> Trouble Reports</button>
+          <button class="nav-btn" data-target="tryreq"><span class="nav-ic">🔁</span> Transformer Try Requests</button>
+          <div style="height:8px"></div>
+          <button class="nav-btn" id="toggleSound"><span class="nav-ic">🔊</span> Sound: ON</button>
+          <button class="nav-btn" id="simulate">Simulate Events</button>
+        </nav>
+        <div class="sidebar-foot">© <span id="year"></span> <br></div>
+      </aside>
+
+      <main>
+        <header>
+          <div class="hdr-left">
+            <div class="live-badge">LIVE</div>
+            <div>
+              <div style="font-weight:800">Protection, Control & Metering — Live Dashboard</div>
+              <div id="clock" class="clock">—</div>
+            </div>
+          </div>
+          <div class="controls">
+            <input id="globalSearch" placeholder="Search (feeder, region, request)" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--text)">
+            <button class="btn primary" id="btnSim">+ New Sample</button>
+          </div>
+        </header>
+
+        <!-- OVERVIEW -->
+        <section id="overview" class="view">
+          <div class="grid cards">
+            <div class="card"><div class="muted">Healthy Feeders</div><div class="kpi" id="kpiHealthy">—</div></div>
+            <div class="card"><div class="muted">Open Incidents</div><div class="kpi" id="kpiIncidents">—</div></div>
+            <div class="card"><div class="muted">Pending Actions</div><div class="kpi" id="kpiPending">—</div></div>
+          </div>
+          <div class="grid" style="grid-template-columns:1fr 420px;gap:16px;margin-top:16px">
+            <div class="card"><div class="muted">Protection Trips (recent)</div><canvas id="chartTrips" style="max-height:260px"></canvas></div>
+            <div class="card"><div class="muted">Equipment Availability</div><canvas id="chartEquip" style="max-height:260px"></canvas></div>
+          </div>
+
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+            <div class="card"><div class="muted">Incident Severity (Live)</div><canvas id="chartSeverity" style="max-height:260px"></canvas></div>
+            <div class="card"><div class="muted">Trouble Reports by Region</div><canvas id="chartRegion" style="max-height:260px"></canvas></div>
+          </div>
+        </section>
+
+        <!-- PROTECTION -->
+        <section id="protection" class="view" style="display:none">
+          <div class="card"><div class="muted">Protection Events</div>
+            <table id="tblProtection"><thead><tr><th>Time</th><th>Feeder</th><th>Device</th><th>Event</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- CONTROL -->
+        <section id="control" class="view" style="display:none">
+          <div class="card"><div class="muted">Control Actions</div>
+            <table id="tblControl"><thead><tr><th>Time</th><th>Location</th><th>Action</th><th>Operator</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- METERING -->
+        <section id="metering" class="view" style="display:none">
+          <div class="card"><div class="muted">Meter Tests</div>
+            <table id="tblMetering"><thead><tr><th>Time</th><th>Meter</th><th>Customer</th><th>Test</th><th>Result</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- EQUIPMENT -->
+        <section id="equipment" class="view" style="display:none">
+          <!-- Dashboard View -->
+          <div id="dashboard-view">
+            <div class="page-header">
+              <h2><i class="fas fa-tachometer-alt"></i> Testing Dashboard</h2>
+              <div class="page-actions">
+                <button id="new-test-btn" class="btn primary"><i class="fas fa-plus"></i> New Test</button>
+              </div>
+            </div>
+            <div class="test-categories">
+              <div class="category-card" data-category="transformers">
+                <i class="fas fa-transformer"></i>
+                <h3>Transformers</h3>
+                <p>Insulation, ratio, winding tests and more</p>
+              </div>
+              <div class="category-card" data-category="breakers">
+                <i class="fas fa-plug"></i>
+                <h3>Circuit Breakers</h3>
+                <p>Contact resistance, timing, insulation tests</p>
+              </div>
+              <div class="category-card" data-category="meters">
+                <i class="fas fa-tachometer-alt"></i>
+                <h3>Energy Meters</h3>
+                <p>Accuracy, starting current, creep tests</p>
+              </div>
+              <div class="category-card" data-category="cables">
+                <i class="fas fa-ethernet"></i>
+                <h3>Cables</h3>
+                <p>Insulation, HV, continuity, phase tests</p>
+              </div>
+            </div>
+            <div class="recent-tests">
+              <h3><i class="fas fa-history"></i> Recent Tests</h3>
+              <p>No recent tests available</p>
+            </div>
+            <div class="card" style="margin-top:18px;overflow:auto">
+              <div class="muted" style="margin-bottom:10px"><i class="fas fa-toolbox"></i> Test Equipment Availability — Live</div>
+              <table id="tblEq">
+                <thead><tr><th>Equipment</th><th>Asset ID</th><th>Location</th><th>Status</th><th>Updated</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Test Category Selection -->
+          <div id="test-category-view" class="hidden">
+            <div class="back-btn" id="back-to-dashboard">
+              <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </div>
+            <div class="test-selection active" id="transformers-tests">
+              <h3><i class="fas fa-transformer"></i> Transformer Tests</h3>
+              <p>Select a test to perform on the transformer</p>
+              <div class="test-list">
+                <div class="test-item" data-test="ir-test">
+                  <h4>Insulation Resistance Test</h4>
+                  <p>Assess insulation between windings and earth</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="ttr-test">
+                  <h4>Turns Ratio Test (TTR)</h4>
+                  <p>Confirm winding ratio matches nameplate</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="winding-test">
+                  <h4>Winding Resistance Test</h4>
+                  <p>Detect shorted turns or loose connections</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="oil-test">
+                  <h4>Oil Dielectric Strength Test</h4>
+                  <p>Evaluate transformer oil's insulation quality</p>
+                  <span class="badge badge-oil">Oil Analysis</span>
+                </div>
+                <div class="test-item" data-test="excitation-test">
+                  <h4>Magnetization/Excitation Test</h4>
+                  <p>Detect core problems like saturation</p>
+                  <span class="badge badge-advanced">Advanced Test</span>
+                </div>
+                <div class="test-item" data-test="vector-test">
+                  <h4>Vector Group Test</h4>
+                  <p>Verify phase displacement and grouping</p>
+                  <span class="badge badge-advanced">Advanced Test</span>
+                </div>
+              </div>
+            </div>
+            <div class="test-selection" id="breakers-tests">
+              <h3><i class="fas fa-plug"></i> Circuit Breaker Tests</h3>
+              <p>Select a test to perform on the circuit breaker</p>
+              <div class="test-list">
+                <div class="test-item" data-test="contact-resistance">
+                  <h4>Contact Resistance Test</h4>
+                  <p>Measure resistance across closed contacts</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="timing-test">
+                  <h4>Timing Test (Open/Close)</h4>
+                  <p>Assess mechanical operation timing</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="cb-ir-test">
+                  <h4>Insulation Resistance Test</h4>
+                  <p>Verify insulation between terminals and ground</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="trip-test">
+                  <h4>Trip Circuit Supervision Test</h4>
+                  <p>Ensure trip circuit reliability</p>
+                  <span class="badge badge-functional">Functional Test</span>
+                </div>
+                <div class="test-item" data-test="sf6-test">
+                  <h4>SF6/Gas Pressure Check</h4>
+                  <p>Ensure appropriate pressure in gas-insulated CBs</p>
+                  <span class="badge badge-oil">Gas Analysis</span>
+                </div>
+              </div>
+            </div>
+            <div class="test-selection" id="meters-tests">
+              <h3><i class="fas fa-tachometer-alt"></i> Energy Meter Tests</h3>
+              <p>Select a test to perform on the energy meter</p>
+              <div class="test-list">
+                <div class="test-item" data-test="accuracy-test">
+                  <h4>Accuracy Test</h4>
+                  <p>Verify meter reading accuracy against known loads</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="starting-test">
+                  <h4>Starting Current Test</h4>
+                  <p>Check if meter starts registering at low load current</p>
+                  <span class="badge badge-functional">Functional Test</span>
+                </div>
+                <div class="test-item" data-test="creep-test">
+                  <h4>Creep Test</h4>
+                  <p>Check for movement without load</p>
+                  <span class="badge badge-functional">Fraud Detection</span>
+                </div>
+              </div>
+            </div>
+            <div class="test-selection" id="cables-tests">
+              <h3><i class="fas fa-ethernet"></i> Cable Tests</h3>
+              <p>Select a test to perform on the cable</p>
+              <div class="test-list">
+                <div class="test-item" data-test="cable-ir-test">
+                  <h4>Insulation Resistance Test</h4>
+                  <p>Detect insulation degradation</p>
+                  <span class="badge">Standard Test</span>
+                </div>
+                <div class="test-item" data-test="hi-pot-test">
+                  <h4>High Voltage Test (Hi-Pot)</h4>
+                  <p>Assess dielectric strength of insulation</p>
+                  <span class="badge badge-hv">HV Test</span>
+                </div>
+                <div class="test-item" data-test="continuity-test">
+                  <h4>Continuity Test</h4>
+                  <p>Ensure conductors are not open-circuited</p>
+                  <span class="badge badge-basic">Basic Test</span>
+                </div>
+                <div class="test-item" data-test="phase-id-test">
+                  <h4>Phase Identification Test</h4>
+                  <p>Verify phase sequence and identification</p>
+                  <span class="badge badge-functional">Functional Test</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test Form View -->
+          <div id="test-form-view" class="hidden">
+            <div class="back-btn" id="back-to-tests">
+              <i class="fas fa-arrow-left"></i> Back to Tests
+            </div>
+
+            <!-- 1. Insulation Resistance Test Form -->
+            <div class="test-form" id="ir-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-shield-alt"></i> Insulation Resistance Test</h3>
+                <p>Assess the condition of insulation between transformer windings and earth</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Megger insulation tester (5kV)" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Test Voltage (kV)</label>
+                  <input type="number" id="ir-voltage" placeholder="e.g. 5.0">
+                </div>
+                <div class="form-group">
+                  <label>Ambient Temperature (°C)</label>
+                  <input type="number" id="ir-temp" placeholder="e.g. 28">
+                </div>
+              </div>
+              <h4>Measurement Values</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>HV to Earth (MΩ)</label>
+                  <input type="number" id="ir-hv-earth" placeholder="e.g. 2500">
+                </div>
+                <div class="form-group">
+                  <label>LV to Earth (MΩ)</label>
+                  <input type="number" id="ir-lv-earth" placeholder="e.g. 1800">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>HV to LV (MΩ)</label>
+                <input type="number" id="ir-hv-lv" placeholder="e.g. 3200">
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="ir-notes" placeholder="e.g. Dry conditions, no moisture">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-ir-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 2. Turns Ratio Test Form -->
+            <div class="test-form" id="ttr-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-sync-alt"></i> Turns Ratio Test (TTR)</h3>
+                <p>Confirm that the winding ratio of the transformer is correct and as per the nameplate</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Transformer Turns Ratio Tester" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Nominal Ratio</label>
+                  <input type="text" id="ttr-nominal" placeholder="e.g. 11kV/415V">
+                </div>
+                <div class="form-group">
+                  <label>Applied Voltage (V)</label>
+                  <input type="number" id="ttr-voltage" placeholder="e.g. 415">
+                </div>
+              </div>
+              <h4>Measured Values</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Primary Voltage (V)</label>
+                  <input type="number" id="ttr-primary" placeholder="e.g. 11000">
+                </div>
+                <div class="form-group">
+                  <label>Secondary Voltage (V)</label>
+                  <input type="number" id="ttr-secondary" placeholder="e.g. 414">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="ttr-notes" placeholder="e.g. Within tolerance">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-ttr-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 3. Winding Resistance Test Form -->
+            <div class="test-form" id="winding-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-microchip"></i> Winding Resistance Test</h3>
+                <p>Detect shorted turns, loose connections, and contact problems</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Micro-ohmmeter" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ambient Temperature (°C)</label>
+                  <input type="number" id="winding-temp" placeholder="e.g. 25">
+                </div>
+              </div>
+              <h4>Resistance per Phase (Ω)</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>HV-A</label>
+                  <input type="number" id="winding-hv-a" step="0.01" placeholder="e.g. 2.1">
+                </div>
+                <div class="form-group">
+                  <label>HV-B</label>
+                  <input type="number" id="winding-hv-b" step="0.01" placeholder="e.g. 2.1">
+                </div>
+                <div class="form-group">
+                  <label>HV-C</label>
+                  <input type="number" id="winding-hv-c" step="0.01" placeholder="e.g. 2.2">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="winding-notes" placeholder="e.g. Balanced readings">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-winding-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 4. Oil Dielectric Strength Test Form -->
+            <div class="test-form" id="oil-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-flask"></i> Oil Dielectric Strength Test</h3>
+                <p>Evaluate transformer insulating oil's ability to withstand electrical stress</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Oil BDV (Breakdown Voltage) Tester" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Temperature (°C)</label>
+                  <input type="number" id="oil-temp" placeholder="e.g. 25">
+                </div>
+              </div>
+              <h4>Breakdown Voltage (kV)</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Test 1</label>
+                  <input type="number" id="oil-test1" placeholder="e.g. 38">
+                </div>
+                <div class="form-group">
+                  <label>Test 2</label>
+                  <input type="number" id="oil-test2" placeholder="e.g. 42">
+                </div>
+                <div class="form-group">
+                  <label>Test 3</label>
+                  <input type="number" id="oil-test3" placeholder="e.g. 40">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="oil-notes" placeholder="e.g. Clean oil sample">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-oil-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 5. Excitation Test Form -->
+            <div class="test-form" id="excitation-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-wave-square"></i> Magnetization/Excitation Test</h3>
+                <p>Detect core problems like saturation or shorted laminations</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Power analyzer" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Applied Voltage (V)</label>
+                  <input type="number" id="excitation-voltage" placeholder="e.g. 230">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Excitation Current (A)</label>
+                  <input type="number" id="excitation-current" step="0.01" placeholder="e.g. 1.5">
+                </div>
+                <div class="form-group">
+                  <label>Core Loss (W)</label>
+                  <input type="number" id="excitation-loss" placeholder="e.g. 110">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="excitation-notes" placeholder="e.g. No saturation observed">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-excitation-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 6. Vector Group Test Form -->
+            <div class="test-form" id="vector-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-project-diagram"></i> Vector Group Test</h3>
+                <p>Verify the phase displacement and correct vector grouping of windings</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="TTR with vector detection" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Measured Vector Group</label>
+                  <input type="text" id="vector-group" placeholder="e.g. Dyn11">
+                </div>
+                <div class="form-group">
+                  <label>Phase Shift (°)</label>
+                  <input type="number" id="vector-shift" placeholder="e.g. 30">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="vector-notes" placeholder="e.g. Matches nameplate">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-vector-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 7. Contact Resistance Test Form -->
+            <div class="test-form" id="contact-resistance-form">
+              <div class="form-header">
+                <h3><i class="fas fa-bolt"></i> Contact Resistance Test</h3>
+                <p>Measure resistance across closed contacts to identify erosion</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Micro-ohmmeter" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Phase A (µΩ)</label>
+                  <input type="number" id="contact-a" placeholder="e.g. 35">
+                </div>
+                <div class="form-group">
+                  <label>Phase B (µΩ)</label>
+                  <input type="number" id="contact-b" placeholder="e.g. 38">
+                </div>
+                <div class="form-group">
+                  <label>Phase C (µΩ)</label>
+                  <input type="number" id="contact-c" placeholder="e.g. 37">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="contact-notes" placeholder="e.g. Contacts clean">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-contact-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 8. Timing Test Form -->
+            <div class="test-form" id="timing-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-clock"></i> Timing Test (Open/Close)</h3>
+                <p>Assess the mechanical operation timing of CBs</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Circuit Breaker Analyzer" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Open Time (ms)</label>
+                  <input type="number" id="timing-open" placeholder="e.g. 58">
+                </div>
+                <div class="form-group">
+                  <label>Close Time (ms)</label>
+                  <input type="number" id="timing-close" placeholder="e.g. 62">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="timing-notes" placeholder="e.g. No delay">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-timing-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 9. CB Insulation Test Form -->
+            <div class="test-form" id="cb-ir-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-shield-alt"></i> Insulation Resistance Test (CB)</h3>
+                <p>Verify insulation between terminals and ground</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Megger (5kV)" readonly>
+              </div>
+              <div class="form-group">
+                <label>Insulation Resistance (MΩ)</label>
+                <input type="number" id="cb-ir-value" placeholder="e.g. 1500">
+              </div>
+              <div class="form-group">
+                <label>Additional Notes</label>
+                <input type="text" id="cb-ir-notes" placeholder="e.g. Strong insulation">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-cb-ir-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 10. Trip Circuit Test Form -->
+            <div class="test-form" id="trip-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Trip Circuit Supervision Test</h3>
+                <p>Ensure trip circuit is reliable during fault conditions</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Multimeter, Relay Test Set" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Trip Voltage (V DC)</label>
+                  <input type="number" id="trip-voltage" value="110">
+                </div>
+                <div class="form-group">
+                  <label>Trip Current (mA)</label>
+                  <input type="number" id="trip-current" value="12">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Observations</label>
+                <input type="text" id="trip-notes" placeholder="e.g. Relay responded correctly">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-trip-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 11. SF6 Pressure Test Form -->
+            <div class="test-form" id="sf6-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-wind"></i> SF6/Gas Pressure Check</h3>
+                <p>Ensure appropriate pressure and detect leakage</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="SF6 Gas Density Monitor" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Pressure (bar)</label>
+                  <input type="number" id="sf6-pressure" step="0.1" placeholder="e.g. 6.2">
+                </div>
+                <div class="form-group">
+                  <label>Temperature (°C)</label>
+                  <input type="number" id="sf6-temp" placeholder="e.g. 25">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Leakage Detected?</label>
+                <select id="sf6-leakage">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-sf6-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 12. Accuracy Test Form -->
+            <div class="test-form" id="accuracy-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-tachometer-alt"></i> Accuracy Test</h3>
+                <p>Verify meter reading accuracy against known loads</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Phantom Load Tester" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Reference kWh</label>
+                  <input type="number" id="accuracy-ref" step="0.001" value="1.000">
+                </div>
+                <div class="form-group">
+                  <label>Meter kWh</label>
+                  <input type="number" id="accuracy-meter" step="0.001" value="1.002">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Calculated Error (%)</label>
+                <input type="text" id="accuracy-error" readonly placeholder="Auto-calculated">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-accuracy-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 13. Starting Current Test Form -->
+            <div class="test-form" id="starting-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-bolt"></i> Starting Current Test</h3>
+                <p>Check if meter starts registering at low load current</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Low current source" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Starting Current (A)</label>
+                  <input type="number" id="starting-current" step="0.01" value="0.02">
+                </div>
+                <div class="form-group">
+                  <label>Time to Register (s)</label>
+                  <input type="number" id="starting-time" value="10">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-starting-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 14. Creep Test Form -->
+            <div class="test-form" id="creep-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-pause-circle"></i> Creep Test</h3>
+                <p>Check for movement without load (fraud prevention)</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Test bench" readonly>
+              </div>
+              <div class="form-group">
+                <label>No Movement Observed for (min)</label>
+                <input type="number" id="creep-duration" value="15">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-creep-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 15. Cable IR Test Form -->
+            <div class="test-form" id="cable-ir-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-shield-alt"></i> Cable Insulation Test</h3>
+                <p>Detect insulation degradation between conductor and earth</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="5kV Megger" readonly>
+              </div>
+              <div class="form-group">
+                <label>IR Value (MΩ)</label>
+                <input type="number" id="cable-ir-value" value="1500">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-cable-ir-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 16. Hi-Pot Test Form -->
+            <div class="test-form" id="hi-pot-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-bolt"></i> High Voltage Test (Hi-Pot)</h3>
+                <p>Assess dielectric strength of cable insulation</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="AC/DC Hipot Tester" readonly>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Applied Voltage (kV)</label>
+                  <input type="number" id="hi-pot-voltage" value="15">
+                </div>
+                <div class="form-group">
+                  <label>Leakage Current (µA)</label>
+                  <input type="number" id="hi-pot-leakage" value="3">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-hi-pot-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 17. Continuity Test Form -->
+            <div class="test-form" id="continuity-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-plug"></i> Continuity Test</h3>
+                <p>Ensure conductors are not open-circuited</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Multimeter" readonly>
+              </div>
+              <div class="form-group">
+                <label>All Conductors Continuous?</label>
+                <select id="continuity-result">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-continuity-test">Submit Test</button>
+              </div>
+            </div>
+
+            <!-- 18. Phase ID Test Form -->
+            <div class="test-form" id="phase-id-test-form">
+              <div class="form-header">
+                <h3><i class="fas fa-random"></i> Phase Identification Test</h3>
+                <p>Verify phase sequence and correct identification</p>
+              </div>
+              <div class="form-group">
+                <label>Equipment Used</label>
+                <input type="text" value="Phase Sequence Meter" readonly>
+              </div>
+              <div class="form-group">
+                <label>Identified Sequence</label>
+                <input type="text" id="phase-sequence" value="A-B-C">
+              </div>
+              <div class="form-actions">
+                <button class="btn-test btn-outline">Cancel</button>
+                <button class="btn-test btn-primary" id="submit-phase-id-test">Submit Test</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test Report View -->
+          <div id="test-report-view" class="hidden">
+            <div class="back-btn" id="back-to-report-tests">
+              <i class="fas fa-arrow-left"></i> Back to Tests
+            </div>
+            <div class="test-report active" id="ir-test-report">
+              <div class="report-header">
+                <h3>Test Report: Insulation Resistance Test</h3>
+                <p>Test performed on: <span id="report-date">June 15, 2023 10:30 AM</span></p>
+              </div>
+              <div class="report-details">
+                <table>
+                  <tr><th>Test Purpose</th><td>Assess insulation between windings and earth</td></tr>
+                  <tr><th>Equipment Used</th><td>Megger insulation tester (5kV)</td></tr>
+                  <tr><th>Test Location</th><td>KEDCO Substation 12, Transformer T-4</td></tr>
+                  <tr><th>Test Engineer</th><td>Engr. Hussaini D. G</td></tr>
+                </table>
+              </div>
+              <div class="report-results">
+                <h4>Test Results</h4>
+                <div class="result-item"><span class="result-label">Test Voltage</span><span class="result-value">5.0 kV</span></div>
+                <div class="result-item"><span class="result-label">Ambient Temp</span><span class="result-value">28°C</span></div>
+                <div class="result-item"><span class="result-label">HV to Earth</span><span class="result-value">2.5 GΩ</span></div>
+                <div class="result-item"><span class="result-label">LV to Earth</span><span class="result-value">1.8 GΩ</span></div>
+                <div class="result-item"><span class="result-label">HV to LV</span><span class="result-value">3.2 GΩ</span></div>
+              </div>
+              <div class="report-conclusion">
+                <h4>Interpretation</h4>
+                <p>All measured insulation values exceed minimum acceptable thresholds. No evidence of degradation or moisture intrusion.</p>
+              </div>
+              <div class="report-status status-pass"><i class="fas fa-check-circle"></i> TEST PASSED</div>
+              <div class="report-actions">
+                <button class="btn-test btn-outline" id="cancel-report"><i class="fas fa-times"></i> Cancel</button>
+                <button class="btn-test btn-primary" id="print-report"><i class="fas fa-print"></i> Print Report</button>
+              </div>
+            </div>
+            <!-- Reports for other tests will be dynamically generated -->
+          </div>
+        </section>
+
+        <!-- TROUBLE REPORTS (ASSIGNMENT) -->
+        <section id="trouble" class="view" style="display:none">
+          <div class="card"><div class="muted">Trouble Reports (Assign personnel)</div>
+            <table id="tblTR"><thead><tr><th>Req#</th><th>Region</th><th>Issue</th><th>Asset</th><th>Severity</th><th>Reported By</th><th>Time</th><th>Assign</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <!-- TRY REQUESTS -->
+        <section id="tryreq" class="view" style="display:none">
+          <div class="card"><div class="muted">Transformer Try Requests (Approve/Reject)</div>
+            <table id="tblTRY"><thead><tr><th>Req#</th><th>Feeder</th><th>Relay Indication</th><th>Risk</th><th>By</th><th>Time</th><th>Action</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+
+        <footer>KEDCO PC&M — Dashboard demo • Dark green & gold theme • Real-time sample data • <span id="footerTime"></span></footer>
+      </main>
+    </div>
+
+    <div style="padding:12px 22px; text-align:center; color:var(--muted); font-size:12px;">
+      Built for demo — keep for presentation or expand to backend integration.
+    </div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  // Helpers
+  const $ = (s, ctx=document) => ctx.querySelector(s);
+  const $$ = (s, ctx=document) => Array.from(ctx.querySelectorAll(s));
+  const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const chance = p => Math.random()<p;
+  const uid = ()=>Math.random().toString(36).slice(2,8).toUpperCase();
+  const now = ()=>{ const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0'); };
+
+  // State
+  const state = { sound:true, log:[], protection:[], control:[], metering:[], equipment:[], approvals:{ TRY:[], TR:[] } };
+
+  // Teams for assignment
+  const teams = ['Regional PC&M','Regional Engineer','Rapid Response HQ Team','General PC&M Team'];
+
+  // Basic lists
+  const feeders=['Ahmadu Bello 11kV','Dawanau 33kV','BUK 33kV','Zaria Road 33kV','Hotoro 11kV','Bichi 33kV'];
+  const devices=['OC Relay','EF Relay','Recloser','Sectionalizer','CB 33kV','City 11kV'];
+  const actions=['Open ACB','Transfer Load','Restore Feeder','Isolate Fault','Changeover','Reclose'];
+  const regions=['Kano','Katsina','Jigawa','Dutse','Bichi','Dambatta'];
+  const issues=['Transformer Tripping','Breaker Lockout','Low DC Voltage','Low Oil Level','High Temperature'];
+  const relayInd=['Overcurrent','Earth Fault','Restricted Earth Fault','Differential','Under Voltage'];
+  const risk=['Low','Medium','High'];
+
+  // DOM elements guards
+  const el = id => document.getElementById(id);
+
+  // Clock
+  function tick(){ try{ const c = el('clock'); const t = el('topClock'); const f = el('footerTime'); const d = new Date(); const s = d.toLocaleString(); if(c) c.textContent = s; if(t) t.textContent = s; if(f) f.textContent = s; }catch(e){ console.warn('tick failed',e); }}
+  setInterval(tick,1000); tick(); if(el('year')) el('year').textContent = new Date().getFullYear();
+
+  // NAV
+  $$('.nav-btn').forEach(b=>b.addEventListener('click', ()=>{
+    $$('.nav-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const tgt = b.dataset.target;
+    $$('.view').forEach(v=> v.style.display = (v.id===tgt) ? '' : 'none');
+  }));
+
+  // SOUND
+  $('#toggleSound').addEventListener('click', ()=>{ state.sound = !state.sound; $('#toggleSound').innerHTML = `${state.sound? '🔊':'🔇'} Sound: ${state.sound? 'ON':'OFF'}`; });
+
+  function speak(text){ try{ if(!state.sound) return; if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(text); u.rate=1.02; window.speechSynthesis.speak(u); } }catch(e){ console.warn('speak failed', e); }}
+
+  // LOG (not shown in UI now but available)
+  function addLog(actor, action, detail){ try{ const row = {time: now(), actor, action, detail}; state.log.unshift(row); }catch(e){console.warn('addLog',e);} }
+
+  // TABLE adders
+  function addProtection(){ try{
+    const tbody = el('tblProtection').querySelector('tbody'); if(!tbody) return;
+    const row = {time: now(), feeder: feeders[rand(0,feeders.length-1)], device: devices[rand(0,devices.length-1)], event: chance(.6)?'Trip Cleared':'Trip Registered', status: chance(.7)?'ok': (chance(.5)?'warn':'bad')};
+    state.protection.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.time}</td><td>${row.feeder}</td><td>${row.device}</td><td>${row.event}</td><td><span class="status ${row.status}">${row.status.toUpperCase()}</span></td>`;
+    tbody.prepend(tr);
+    updateKPIs();
+  }catch(e){console.warn('addProtection',e);} }
+
+  function addControl(){ try{
+    const tbody = el('tblControl').querySelector('tbody'); if(!tbody) return;
+    const row={time: now(), loc: feeders[rand(0,feeders.length-1)].replace('11kV','SS').replace('33kV','SS'), action: actions[rand(0,actions.length-1)], op: ['Engr. Musa','Engr. Hauwa','Engr. John','Engr. Zainab'][rand(0,3)], status: chance(.7)?'ok':'warn'};
+    state.control.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.time}</td><td>${row.loc}</td><td>${row.action}</td><td>${row.op}</td><td><span class="status ${row.status}">${row.status==='ok'?'EXECUTED':'QUEUED'}</span></td>`;
+    tbody.prepend(tr);
+    updateKPIs();
+  }catch(e){console.warn('addControl',e);} }
+
+  function addMeter(){ try{
+    const tbody = el('tblMetering').querySelector('tbody'); if(!tbody) return;
+    const row={time:now(), id:'MT-'+uid(), customer:['Dangote Rice Mill','AKTH','KEDCO HQ','Bayero Univ','Max Stores'][rand(0,4)], test: chance(.5)?'Accuracy @ Ib':'Creep Test', result: chance(.86)?'ok':'bad'};
+    state.metering.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.time}</td><td>${row.id}</td><td>${row.customer}</td><td>${row.test}</td><td><span class="status ${row.result}">${row.result==='ok'?'PASS':'FAIL'}</span></td>`;
+    tbody.prepend(tr);
+    updateKPIs();
+  }catch(e){console.warn('addMeter',e);} }
+
+  function addEquipment(){ try{
+    const tbody = el('tblEq').querySelector('tbody'); if(!tbody) return;
+    const names=['Relay Tester','Primary Injection Kit','Insulation Tester','CT Analyzer','VT Set'];
+    const row={name:names[rand(0,names.length-1)], asset:'EQ-'+uid(), loc:['Hotoro','Zaria Rd','BUK','Bichi'][rand(0,3)], status:['ok','warn','bad'][rand(0,2)], updated: now()};
+    state.equipment.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.name}</td><td>${row.asset}</td><td>${row.loc}</td><td><span class="status ${row.status}">${row.status==='ok'?'Available':row.status==='warn'?'In Use':'Faulty'}</span></td><td>${row.updated}</td>`;
+    tbody.prepend(tr);
+    updateKPIs();
+  }catch(e){console.warn('addEquipment',e);} }
+
+  // Trouble Reports - assignment (Head PC&M assigns teams)
+  function addTrouble(){ try{
+    const tbody = el('tblTR').querySelector('tbody'); if(!tbody) return;
+    const row = { id:'TR-'+uid(), region: regions[rand(0,regions.length-1)], issue: issues[rand(0,issues.length-1)], asset: chance(.6)?'Transformer':'Breaker', severity: ['Low','Medium','High'][rand(0,2)], by:['Engr. Aisha','Engr. Bello','Engr. Chinedu'][rand(0,2)], time: now(), assigned: '' };
+    state.approvals.TR.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.id}</td><td>${row.region}</td><td>${row.issue}</td><td>${row.asset}</td><td><span class="status ${row.severity==='High'?'bad':row.severity==='Medium'?'warn':'ok'}">${row.severity}</span></td><td>${row.by}</td><td>${row.time}</td><td><select class="assignSelect">${teams.map(t=>`<option value="${t}">${t}</option>`).join('')}</select><button class="pill assign">Assign</button></td>`;
+    tbody.prepend(tr);
+    // hook assign
+    const assignBtn = tr.querySelector('button.assign'); const sel = tr.querySelector('select.assignSelect');
+    if(assignBtn){
+      assignBtn.addEventListener('click', ()=>{
+        const team = sel.value;
+        row.assigned = team;
+        speak(`Assigned ${row.id} to ${team}`);
+        addLog('Head PC&M','Assigned',`${row.id} → ${team}`);
+        // visually show assignment
+        const td = document.createElement('td');
+        td.innerHTML = `<strong style="color:var(--gold)">${team}</strong>`;
+        assignBtn.disabled=true; sel.disabled=true;
+        tr.appendChild(td);
+        updateKPIs();
+        updateCharts();
+      });
+    }
+    updateKPIs();
+    updateCharts();
+  }catch(e){console.warn('addTrouble',e);} }
+
+  // TRY requests - approve/reject
+  function addTRY(){ try{
+    const tbody = el('tblTRY').querySelector('tbody'); if(!tbody) return;
+    const row = { id:'TRY-'+uid(), feeder: feeders[rand(0,feeders.length-1)], relay: relayInd[rand(0,relayInd.length-1)], risk: risk[rand(0,risk.length-1)], by:['Engr. Maryam','Engr. Sola','Engr. Kabiru'][rand(0,2)], time: now(), status:'' };
+    state.approvals.TRY.unshift(row);
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${row.id}</td><td>${row.feeder}</td><td>${row.relay}</td><td><span class="status ${row.risk==='High'?'bad':row.risk==='Medium'?'warn':'ok'}">${row.risk}</span></td><td>${row.by}</td><td>${row.time}</td><td class="actions"><button class="pill approve" data-id="${row.id}">Approve</button><button class="pill reject" data-id="${row.id}">Reject</button></td>`;
+    tbody.prepend(tr);
+    // hook approve/reject
+    tr.querySelector('button.approve').addEventListener('click', ()=>{
+      row.status='APPROVED';
+      speak(`Try request ${row.id} approved`);
+      addLog('Head O&M','Approved TRY',row.id);
+      tr.style.opacity='.6';
+      tr.querySelectorAll('button').forEach(b=>b.disabled=true);
+      const td=document.createElement('td'); td.innerHTML = `<span class="status ok">APPROVED</span>`; tr.appendChild(td);
+      updateKPIs();
+      updateCharts();
+    });
+    tr.querySelector('button.reject').addEventListener('click', ()=>{
+      row.status='REJECTED';
+      speak(`Try request ${row.id} rejected`);
+      addLog('Head O&M','Rejected TRY',row.id);
+      tr.style.opacity='.6';
+      tr.querySelectorAll('button').forEach(b=>b.disabled=true);
+      const td=document.createElement('td'); td.innerHTML = `<span class="status bad">REJECTED</span>`; tr.appendChild(td);
+      updateKPIs();
+      updateCharts();
+    });
+    updateKPIs();
+    updateCharts();
+  }catch(e){console.warn('addTRY',e);} }
+
+  // KPI updater
+  function updateKPIs(){ try{
+    if(el('kpiHealthy')) el('kpiHealthy').textContent = Math.max(30, 50 - state.protection.length);
+    if(el('kpiIncidents')) el('kpiIncidents').textContent = state.protection.length + state.control.length + state.metering.length;
+    if(el('kpiPending')) el('kpiPending').textContent = state.approvals.TR.length + state.approvals.TRY.length;
+  }catch(e){console.warn('updateKPIs',e);} }
+
+  // Charts
+  let tripsChart = null, equipChart = null, severityChart = null, regionChart = null;
+  function initCharts(){ try{
+    if(typeof Chart === 'undefined'){ console.warn('Chart.js missing — charts disabled'); return; }
+    const ctx = $('#chartTrips'); const ectx = $('#chartEquip'); const sctx = $('#chartSeverity'); const rctx = $('#chartRegion');
+    if(ctx){
+      tripsChart = new Chart(ctx.getContext('2d'), {
+        type:'line',
+        data:{ labels: Array.from({length:12}, (_,i)=>i+1),
+          datasets:[{ label:'Trips', data: Array.from({length:12}, ()=>rand(0,6)), tension:0.3, borderColor: 'rgba(255,212,77,0.95)', backgroundColor:'rgba(255,212,77,0.12)', fill:true }]},
+        options:{ plugins:{legend:{display:false}}, scales:{x:{display:false}}, animation:{duration:400} }
+      });
+    }
+    if(ectx){
+      equipChart = new Chart(ectx.getContext('2d'), {
+        type:'bar',
+        data:{ labels:['Relay','Primary Inj.','Insulation','CT Analyzer'], datasets:[{ label:'Availability %', data: [rand(60,95),rand(50,95),rand(60,98),rand(50,95)], backgroundColor:'rgba(19,179,107,0.9)'}]},
+        options:{ plugins:{legend:{display:false}}, scales:{y:{min:0,max:100}}, animation:{duration:400} }
+      });
+    }
+    if(sctx){
+      severityChart = new Chart(sctx.getContext('2d'), {
+        type:'pie',
+        data:{ labels:['Low','Medium','High'], datasets:[{ data:[0,0,0], backgroundColor:['rgba(19,179,107,0.85)','rgba(255,212,77,0.85)','rgba(231,76,60,0.85)']}]},
+        options:{ plugins:{legend:{position:'bottom'}} }
+      });
+    }
+    if(rctx){
+      regionChart = new Chart(rctx.getContext('2d'), {
+        type:'bar',
+        data:{ labels: regions.slice(), datasets:[{ label:'Reports', data: regions.map(()=>0), backgroundColor:'rgba(255,212,77,0.85)'}]},
+        options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+  }catch(e){console.warn('initCharts failed',e);} }
+
+  function updateCharts(){ try{
+    // Trips chart: push a new sample and cap at 24
+    if(tripsChart){
+      tripsChart.data.labels.push(new Date().toLocaleTimeString());
+      tripsChart.data.datasets[0].data.push(rand(0,6));
+      if(tripsChart.data.labels.length>24){ tripsChart.data.labels.shift(); tripsChart.data.datasets[0].data.shift(); }
+      tripsChart.update('none');
+    }
+    // Equip chart: randomize availabilities
+    if(equipChart){
+      equipChart.data.datasets[0].data = equipChart.data.datasets[0].data.map(()=> rand(50,98));
+      equipChart.update('none');
+    }
+    // Severity & Region: recompute from state.approvals.TR
+    const sevCounts = {Low:0, Medium:0, High:0};
+    const regCounts = regions.reduce((acc,r)=>{ acc[r]=0; return acc; }, {});
+    state.approvals.TR.forEach(t=>{ if(t && t.severity) sevCounts[t.severity] = (sevCounts[t.severity]||0)+1; if(t && t.region) regCounts[t.region] = (regCounts[t.region]||0)+1; });
+    // If charts exist update them
+    if(severityChart){
+      severityChart.data.datasets[0].data = [sevCounts.Low, sevCounts.Medium, sevCounts.High];
+      severityChart.update('none');
+    }
+    if(regionChart){
+      regionChart.data.datasets[0].data = regions.map(r => regCounts[r] || 0);
+      regionChart.update('none');
+    }
+  }catch(e){console.warn('updateCharts',e);} }
+
+  // Global search
+  $('#globalSearch').addEventListener('input', e=>{
+    const q = (e.target.value||'').toLowerCase();
+    ['tblProtection','tblControl','tblMetering','tblEq','tblTR','tblTRY'].forEach(id=>{
+      const t = el(id); if(!t) return;
+      t.querySelectorAll('tbody tr').forEach(r=> r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none');
+    });
+  });
+
+  // Buttons
+  $('#btnSim').addEventListener('click', ()=>{ addProtection(); addControl(); addMeter(); addEquipment(); addTrouble(); addTRY(); updateKPIs(); updateCharts(); speak('New sample events generated'); });
+  $('#simulate').addEventListener('click', ()=>{ $('#btnSim').click(); });
+
+  // Periodic live updates
+  setInterval(()=>{ if(chance(.6)) { addProtection(); updateKPIs(); updateCharts(); } }, 6000);
+  setInterval(()=>{ if(chance(.5)) { addControl(); updateKPIs(); } }, 8000);
+  setInterval(()=>{ if(chance(.5)) { addMeter(); updateKPIs(); } }, 9000);
+  setInterval(()=>{ if(chance(.45)) { addEquipment(); updateKPIs(); updateCharts(); } }, 11000);
+  setInterval(()=>{ if(chance(.35)) { addTrouble(); updateKPIs(); speak('New trouble report'); } }, 12000);
+  setInterval(()=>{ if(chance(.35)) { addTRY(); updateKPIs(); speak('New transformer try request'); } }, 13000);
+
+  // Init seed
+  function seed(){ for(let i=0;i<6;i++){ addProtection(); addControl(); addMeter(); addEquipment(); } for(let i=0;i<3;i++){ addTrouble(); addTRY(); } updateKPIs(); initCharts(); updateCharts(); }
+  seed();
+
+})();
+
+// Test Equipment Script (from Code 1)
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboardView = document.getElementById('dashboard-view');
+    const testCategoryView = document.getElementById('test-category-view');
+    const testFormView = document.getElementById('test-form-view');
+    const testReportView = document.getElementById('test-report-view');
+
+    const newTestBtn = document.getElementById('new-test-btn');
+    const backToDashboard = document.getElementById('back-to-dashboard');
+    const backToTests = document.getElementById('back-to-tests');
+    const backToReportTests = document.getElementById('back-to-report-tests');
+    const printReportBtn = document.getElementById('print-report');
+    const cancelReportBtn = document.getElementById('cancel-report');
+
+    const categoryCards = document.querySelectorAll('.category-card');
+    const testItems = document.querySelectorAll('.test-item');
+
+    // Show dashboard initially
+    showView(dashboardView);
+
+    // Navigation
+    newTestBtn.addEventListener('click', () => showView(testCategoryView));
+    backToDashboard.addEventListener('click', () => showView(dashboardView));
+    backToTests.addEventListener('click', () => showView(testCategoryView));
+    backToReportTests.addEventListener('click', () => showView(testCategoryView));
+    cancelReportBtn.addEventListener('click', () => showView(testCategoryView));
+    printReportBtn.addEventListener('click', () => window.print());
+
+    // Category selection
+    categoryCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            document.querySelectorAll('.test-selection').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${category}-tests`).classList.add('active');
+            showView(testCategoryView);
+        });
+    });
+
+    // Test selection
+    testItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const test = this.getAttribute('data-test');
+            document.querySelectorAll('.test-form').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${test}-form`).classList.add('active');
+            showView(testFormView);
+        });
+    });
+
+    // Submit Handlers
+    document.getElementById('submit-ir-test').addEventListener('click', function() {
+        const voltage = document.getElementById('ir-voltage').value || '5.0';
+        const temp = document.getElementById('ir-temp').value || '28';
+        const hvEarth = document.getElementById('ir-hv-earth').value || '2500';
+        const lvEarth = document.getElementById('ir-lv-earth').value || '1800';
+        const hvLv = document.getElementById('ir-hv-lv').value || '3200';
+
+        generateReport('ir-test-report', 'Insulation Resistance Test', [
+            ['Test Voltage', `${voltage} kV`],
+            ['Ambient Temperature', `${temp}°C`],
+            ['HV to Earth', `${hvEarth} MΩ`],
+            ['LV to Earth', `${lvEarth} MΩ`],
+            ['HV to LV', `${hvLv} MΩ`]
+        ], 'All insulation values are above 1 GΩ, indicating excellent insulation condition.', true);
+    });
+
+    document.getElementById('submit-ttr-test').addEventListener('click', function() {
+        const nominal = document.getElementById('ttr-nominal').value || '11kV/415V';
+        const primary = document.getElementById('ttr-primary').value || '11000';
+        const secondary = document.getElementById('ttr-secondary').value || '415';
+        const ratio = (primary / secondary).toFixed(2);
+        const deviation = Math.abs(ratio - 26.46) < 0.5 ? 0.2 : 1.2;
+
+        generateReport('ttr-test-report', 'Turns Ratio Test (TTR)', [
+            ['Nominal Ratio', nominal],
+            ['Primary Voltage', `${primary} V`],
+            ['Secondary Voltage', `${secondary} V`],
+            ['Measured Ratio', ratio],
+            ['Deviation', `${deviation}%`]
+        ], `Ratio deviation is within ±0.5%. Winding configuration is correct.`, deviation < 0.5);
+    });
+
+    document.getElementById('submit-winding-test').addEventListener('click', function() {
+        const a = document.getElementById('winding-hv-a').value || '2.1';
+        const b = document.getElementById('winding-hv-b').value || '2.1';
+        const c = document.getElementById('winding-hv-c').value || '2.2';
+        const balanced = Math.abs(a - b) < 0.2 && Math.abs(b - c) < 0.2;
+
+        generateReport('winding-test-report', 'Winding Resistance Test', [
+            ['HV-A', `${a} Ω`],
+            ['HV-B', `${b} Ω`],
+            ['HV-C', `${c} Ω`]
+        ], `Windings show ${balanced ? 'balanced' : 'unbalanced'} resistance. ${balanced ? 'No shorted turns detected.' : 'Possible inter-turn fault.'}`, balanced);
+    });
+
+    document.getElementById('submit-oil-test').addEventListener('click', function() {
+        const t1 = parseFloat(document.getElementById('oil-test1').value) || 38;
+        const t2 = parseFloat(document.getElementById('oil-test2').value) || 42;
+        const t3 = parseFloat(document.getElementById('oil-test3').value) || 40;
+        const avg = ((t1 + t2 + t3) / 3).toFixed(1);
+        const pass = avg >= 30;
+
+        generateReport('oil-test-report', 'Oil Dielectric Strength Test', [
+            ['Test 1', `${t1} kV`],
+            ['Test 2', `${t2} kV`],
+            ['Test 3', `${t3} kV`],
+            ['Average', `${avg} kV`]
+        ], `Oil breakdown voltage is ${pass ? 'above' : 'below'} 30 kV standard. ${pass ? 'Oil is clean and dry.' : 'Oil may be contaminated.'}`, pass);
+    });
+
+    document.getElementById('submit-excitation-test').addEventListener('click', function() {
+        const current = document.getElementById('excitation-current').value || '1.5';
+        const loss = document.getElementById('excitation-loss').value || '110';
+        const normal = current <= 2.0 && loss <= 150;
+
+        generateReport('excitation-test-report', 'Magnetization/Excitation Test', [
+            ['Excitation Current', `${current} A`],
+            ['Core Loss', `${loss} W`]
+        ], `Core performance is ${normal ? 'normal' : 'abnormal'}. ${normal ? 'No core saturation detected.' : 'Possible shorted laminations.'}`, normal);
+    });
+
+    document.getElementById('submit-vector-test').addEventListener('click', function() {
+        const group = document.getElementById('vector-group').value || 'Dyn11';
+        const shift = document.getElementById('vector-shift').value || '30';
+        const correct = group === 'Dyn11' && shift == 30;
+
+        generateReport('vector-test-report', 'Vector Group Test', [
+            ['Measured Group', group],
+            ['Phase Shift', `${shift}°`]
+        ], `Vector group is ${correct ? 'correctly verified' : 'incorrect'}. Phase displacement is ${correct ? 'as expected' : 'not matching nameplate'}.`, correct);
+    });
+
+    document.getElementById('submit-contact-test').addEventListener('click', function() {
+        const a = document.getElementById('contact-a').value || '35';
+        const b = document.getElementById('contact-b').value || '38';
+        const c = document.getElementById('contact-c').value || '37';
+        const max = Math.max(a, b, c);
+        const pass = max <= 100;
+
+        generateReport('contact-test-report', 'Contact Resistance Test', [
+            ['Phase A', `${a} µΩ`],
+            ['Phase B', `${b} µΩ`],
+            ['Phase C', `${c} µΩ`]
+        ], `Maximum contact resistance is ${max} µΩ. ${pass ? 'Within acceptable limits. Contacts are clean.' : 'Exceeds limit. Erosion suspected.'}`, pass);
+    });
+
+    document.getElementById('submit-timing-test').addEventListener('click', function() {
+        const open = document.getElementById('timing-open').value || '58';
+        const close = document.getElementById('timing-close').value || '62';
+        const pass = open <= 80 && close <= 100;
+
+        generateReport('timing-test-report', 'Timing Test (Open/Close)', [
+            ['Open Time', `${open} ms`],
+            ['Close Time', `${close} ms`]
+        ], `Timing is ${pass ? 'within' : 'outside'} standard limits. ${pass ? 'No mechanical delay observed.' : 'Check mechanism.'}`, pass);
+    });
+
+    document.getElementById('submit-cb-ir-test').addEventListener('click', function() {
+        const ir = document.getElementById('cb-ir-value').value || '1500';
+        const pass = ir > 1000;
+
+        generateReport('cb-ir-test-report', 'Insulation Resistance Test (CB)', [
+            ['Insulation Resistance', `${ir} MΩ`]
+        ], `Insulation resistance is ${pass ? 'strong' : 'weak'}. ${pass ? 'Dielectric integrity confirmed.' : 'Moisture or contamination possible.'}`, pass);
+    });
+
+    document.getElementById('submit-trip-test').addEventListener('click', function() {
+        const voltage = document.getElementById('trip-voltage').value || '110';
+        const current = document.getElementById('trip-current').value || '12';
+        const pass = voltage >= 80 && current <= 50;
+
+        generateReport('trip-test-report', 'Trip Circuit Supervision Test', [
+            ['Trip Voltage', `${voltage} V DC`],
+            ['Trip Current', `${current} mA`]
+        ], `Trip circuit is ${pass ? 'functional' : 'faulty'}. ${pass ? 'Supervision relay responded correctly.' : 'Check wiring or relay.'}`, pass);
+    });
+
+    document.getElementById('submit-sf6-test').addEventListener('click', function() {
+        const pressure = document.getElementById('sf6-pressure').value || '6.2';
+        const leakage = document.getElementById('sf6-leakage').value;
+        const pass = pressure >= 5.5 && leakage === 'No';
+
+        generateReport('sf6-test-report', 'SF6/Gas Pressure Check', [
+            ['Pressure', `${pressure} bar`],
+            ['Leakage Detected', leakage]
+        ], `SF6 pressure is ${pass ? 'normal' : 'low'}. Leakage is ${leakage.toLowerCase()}. ${pass ? 'Safe for operation.' : 'Requires refill and leak check.'}`, pass);
+    });
+
+    document.getElementById('submit-accuracy-test').addEventListener('click', function() {
+        const ref = parseFloat(document.getElementById('accuracy-ref').value) || 1.000;
+        const meter = parseFloat(document.getElementById('accuracy-meter').value) || 1.002;
+        const error = ((meter - ref) / ref * 100).toFixed(2);
+        document.getElementById('accuracy-error').value = `${error}%`;
+        const pass = Math.abs(error) <= 1.0;
+
+        generateReport('accuracy-test-report', 'Accuracy Test', [
+            ['Reference kWh', `${ref} kWh`],
+            ['Meter kWh', `${meter} kWh`],
+            ['Error', `${error}%`]
+        ], `Meter accuracy is ${pass ? 'within' : 'outside'} ±1% limit. ${pass ? 'Meter is calibrated and accurate.' : 'Recalibration needed.'}`, pass);
+    });
+
+    document.getElementById('submit-starting-test').addEventListener('click', function() {
+        const current = document.getElementById('starting-current').value || '0.02';
+        const time = document.getElementById('starting-time').value || '10';
+        const pass = current <= 0.05 && time <= 30;
+
+        generateReport('starting-test-report', 'Starting Current Test', [
+            ['Starting Current', `${current} A`],
+            ['Register Time', `${time} s`]
+        ], `Meter starts at ${current} A. ${pass ? 'Meets sensitivity requirement.' : 'Fails starting current test.'}`, pass);
+    });
+
+    document.getElementById('submit-creep-test').addEventListener('click', function() {
+        const duration = document.getElementById('creep-duration').value || '15';
+        const pass = duration >= 10;
+
+        generateReport('creep-test-report', 'Creep Test', [
+            ['No Movement Duration', `${duration} minutes`]
+        ], `No movement observed for ${duration} minutes. ${pass ? 'No creep detected. Meter secure.' : 'Creep detected. Possible tampering.'}`, pass);
+    });
+
+    document.getElementById('submit-cable-ir-test').addEventListener('click', function() {
+        const ir = document.getElementById('cable-ir-value').value || '1500';
+        const pass = ir > 1000;
+
+        generateReport('cable-ir-test-report', 'Cable Insulation Resistance Test', [
+            ['IR Value', `${ir} MΩ`]
+        ], `Insulation is ${pass ? 'healthy' : 'degraded'}. ${pass ? 'No moisture or cracks detected.' : 'Inspect for damage.'}`, pass);
+    });
+
+    document.getElementById('submit-hi-pot-test').addEventListener('click', function() {
+        const voltage = document.getElementById('hi-pot-voltage').value || '15';
+        const leakage = document.getElementById('hi-pot-leakage').value || '3';
+        const pass = leakage < 10;
+
+        generateReport('hi-pot-test-report', 'High Voltage Test (Hi-Pot)', [
+            ['Applied Voltage', `${voltage} kV`],
+            ['Leakage Current', `${leakage} µA`]
+        ], `Cable insulation withstood ${voltage} kV. Leakage current is ${leakage} µA. ${pass ? 'No puncture or breakdown occurred.' : 'Insulation failure suspected.'}`, pass);
+    });
+
+    document.getElementById('submit-continuity-test').addEventListener('click', function() {
+        const result = document.getElementById('continuity-result').value;
+        const pass = result === 'Yes';
+
+        generateReport('continuity-test-report', 'Continuity Test', [
+            ['Conductors Continuous', result]
+        ], `All cores are ${pass ? 'electrically continuous end-to-end.' : 'open-circuited. Check connections.'}`, pass);
+    });
+
+    document.getElementById('submit-phase-id-test').addEventListener('click', function() {
+        const sequence = document.getElementById('phase-sequence').value || 'A-B-C';
+        const pass = sequence === 'A-B-C';
+
+        generateReport('phase-id-test-report', 'Phase Identification Test', [
+            ['Identified Sequence', sequence]
+        ], `Phase markings are ${pass ? 'correctly identified and labeled.' : 'incorrect. Recheck connections.'}`, pass);
+    });
+
+    function generateReport(reportId, testName, results, conclusion, passed) {
+        // Hide all reports
+        document.querySelectorAll('.test-report').forEach(r => r.classList.remove('active'));
+
+        let report = document.getElementById(reportId);
+        if (!report) {
+            report = document.createElement('div');
+            report.className = 'test-report';
+            report.id = reportId;
+            document.getElementById('test-report-view').appendChild(report);
+        }
+
+        let resultsHtml = '';
+        results.forEach(r => {
+            resultsHtml += `<div class="result-item"><span class="result-label">${r[0]}</span><span class="result-value">${r[1]}</span></div>`;
+        });
+
+        report.innerHTML = `
+            <div class="report-header">
+                <h3>Test Report: ${testName}</h3>
+                <p>Test performed on: <span>${new Date().toLocaleString()}</span></p>
+            </div>
+            <div class="report-details">
+                <table>
+                    <tr><th>Test Purpose</th><td>See test standard</td></tr>
+                    <tr><th>Test Engineer</th><td>Engr. Abdullahi Musa</td></tr>
+                </table>
+            </div>
+            <div class="report-results">
+                <h4>Test Results</h4>
+                ${resultsHtml}
+            </div>
+            <div class="report-conclusion">
+                <h4>Conclusion</h4>
+                <p>${conclusion}</p>
+            </div>
+            <div class="report-status ${passed ? 'status-pass' : 'status-fail'}">
+                <i class="fas fa-${passed ? 'check' : 'times'}-circle"></i> TEST ${passed ? 'PASSED' : 'FAILED'}
+            </div>
+            <div class="report-actions">
+                <button class="btn-test btn-outline" onclick="showView(document.getElementById('test-category-view'))"><i class="fas fa-times"></i> Cancel</button>
+                <button class="btn-test btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+            </div>
+        `;
+
+        report.classList.add('active');
+        showView(testReportView);
+    }
+
+    function showView(view) {
+        [dashboardView, testCategoryView, testFormView, testReportView].forEach(v => v.classList.add('hidden'));
+        view.classList.remove('hidden');
+    }
+});
+</script>
+<!-- ================================================================
+     KEDCO EQUIPMENT TEST ASSURANCE ENHANCEMENT
+     Self-contained CSS + JavaScript layer. The original dashboard code,
+     simulations, charts, tables, navigation and approval flows remain intact.
+================================================================= -->
+<style>
+  :root{
+    --assurance-navy:#071f36;
+    --assurance-green:#0a6b3a;
+    --assurance-gold:#f2c14e;
+    --assurance-cream:#fffaf0;
+    --assurance-red:#a72732;
+  }
+  .top-header{border-bottom:1px solid rgba(255,212,77,.32);position:relative;overflow:hidden}
+  .top-header::after{content:"";position:absolute;inset:auto -8% -70px 40%;height:110px;background:radial-gradient(circle,rgba(255,212,77,.15),transparent 65%);pointer-events:none}
+  aside{border:1px solid rgba(255,212,77,.12)}
+  .nav-btn.active{box-shadow:inset 3px 0 var(--gold),0 8px 24px rgba(0,0,0,.2)}
+  .category-card,.test-item,.test-form,.test-report{border:1px solid rgba(255,212,77,.12)!important}
+  .category-card{background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,212,77,.025))!important}
+  .category-card:hover,.test-item:hover{border-color:rgba(255,212,77,.42)!important}
+  .test-form{background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(3,24,14,.58))!important;border-radius:18px!important}
+  .assurance-standard{
+    display:grid;grid-template-columns:46px 1fr;gap:14px;align-items:start;
+    padding:16px;margin:0 0 20px;border:1px solid rgba(242,193,78,.34);
+    border-radius:14px;background:linear-gradient(135deg,rgba(242,193,78,.11),rgba(7,31,54,.25));
+  }
+  .assurance-standard .standard-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#ffd96b,#c88b18);color:#152d1d;font:800 16px Georgia}
+  .assurance-standard strong{display:block;color:var(--gold);font-size:13px;letter-spacing:.04em}
+  .assurance-standard p{margin:6px 0;color:var(--muted);font-size:12px;line-height:1.55}
+  .assurance-standard code{display:block;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.22);color:#d8eee0;font-size:11px;white-space:normal}
+  .assurance-panel{margin:20px 0;padding:20px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:linear-gradient(145deg,rgba(7,31,54,.42),rgba(255,255,255,.035))}
+  .assurance-panel h4{margin:0 0 5px!important;color:var(--gold);font:700 16px Georgia}
+  .assurance-panel>p{margin:0 0 16px;color:var(--muted);font-size:12px;line-height:1.5}
+  .trace-grid,.criteria-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .assurance-field{display:block}
+  .assurance-field>span{display:flex;align-items:center;gap:6px;margin-bottom:7px;font-size:11px;font-weight:700;color:var(--text)}
+  .assurance-field b{color:#ff7d86}.assurance-field em{margin-left:auto;color:var(--gold);font-size:10px;font-style:normal;font-weight:500}
+  .assurance-field input,.assurance-field select,.assurance-field textarea{width:100%;padding:11px 12px;border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(0,0,0,.24);color:var(--text);outline:none}
+  .assurance-field input:focus,.assurance-field select:focus,.assurance-field textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,193,78,.09)}
+  .assurance-field small{display:block;margin-top:5px;color:var(--muted);font-size:10px;line-height:1.35}
+  .assurance-field.wide{grid-column:span 2}.assurance-field.full{grid-column:1/-1}
+  .assurance-submit-note{display:flex;align-items:flex-start;gap:10px;margin:15px 0 0;padding:11px;border-radius:10px;background:rgba(19,179,107,.08);color:#bde8cc;font-size:11px;line-height:1.5}
+  .assurance-submit-note i{color:var(--gold);margin-top:2px}
+  .assurance-error{padding:13px 15px;border-radius:10px;border:1px solid rgba(255,90,100,.35);background:rgba(167,39,50,.2);color:#ffd5d8;font-size:12px;margin:13px 0}
+  .status-marginal{background:linear-gradient(90deg,#9b5b00,#d38b16)!important;color:#fff!important}
+  .enhanced-report{background:linear-gradient(165deg,rgba(255,255,255,.08),rgba(3,24,14,.7))!important;border-radius:18px!important;overflow:hidden}
+  .enhanced-report .report-header{padding:22px;background:linear-gradient(120deg,var(--assurance-navy),#07502d);border-bottom:1px solid rgba(242,193,78,.35)}
+  .enhanced-report .report-header h3{font:700 22px Georgia;margin:0 0 7px;color:#fff}
+  .enhanced-report .report-number{display:inline-block;margin-top:7px;padding:5px 8px;border-radius:999px;background:rgba(242,193,78,.14);color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.08em}
+  .enhanced-report .standard-basis{padding:14px;border-radius:10px;background:rgba(242,193,78,.08);border:1px solid rgba(242,193,78,.2);margin:16px 0}
+  .enhanced-report .standard-basis strong{color:var(--gold)}
+  .enhanced-report .standard-basis p{color:var(--muted);font-size:11px;line-height:1.55}
+  .enhanced-report .calculation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .enhanced-report .calculation-grid>div{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.035)}
+  .enhanced-report .calculation-grid small,.enhanced-report .calculation-grid strong{display:block}
+  .enhanced-report .calculation-grid small{color:var(--muted);font-size:10px}.enhanced-report .calculation-grid strong{margin-top:5px;color:#fff}
+  .criteria-list{margin:8px 0 0;padding:0;list-style:none}.criteria-list li{padding:5px 0;color:#c9ddd0;font-size:11px}.criteria-list li::before{content:"✓";color:var(--gold);margin-right:8px;font-weight:900}
+  .recommendation-box{padding:14px;border-left:4px solid var(--gold);background:rgba(255,212,77,.07);border-radius:0 10px 10px 0;margin-top:14px}
+  .recommendation-box strong{color:var(--gold)}.recommendation-box p{margin:6px 0 0;color:#d4e2d7;font-size:12px;line-height:1.55}
+  .evidence-row{display:grid;grid-template-columns:minmax(160px,1fr) 75px minmax(220px,2fr);gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px;align-items:center}.evidence-row code{overflow:hidden;text-overflow:ellipsis;color:#b9d8c3}
+  .recent-tests{padding:18px;border-radius:14px;border:1px solid rgba(255,212,77,.12);background:rgba(255,255,255,.035)}
+  .assurance-history{width:100%;border-collapse:collapse}.assurance-history th,.assurance-history td{font-size:11px;padding:10px 8px}.assurance-history td small{display:block;color:var(--muted);margin-top:3px}
+  .mini-verdict{display:inline-block;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.06em}.mini-verdict.pass{background:rgba(19,179,107,.16);color:#91eeb9}.mini-verdict.marginal{background:rgba(255,193,7,.16);color:#ffe39b}.mini-verdict.fail{background:rgba(220,53,69,.18);color:#ffb3ba}
+  .btn-export{background:rgba(255,255,255,.07)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14)!important}
+  @media(max-width:1000px){.trace-grid,.criteria-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:700px){.trace-grid,.criteria-grid,.enhanced-report .calculation-grid{grid-template-columns:1fr}.assurance-field.wide{grid-column:auto}.evidence-row{grid-template-columns:1fr}.app{grid-template-columns:1fr!important}aside{position:relative!important;height:auto!important}.top-header{align-items:flex-start}.top-header>div:last-child{flex-wrap:wrap}.cards{grid-template-columns:1fr!important}}
+  @media print{
+    body{background:#fff!important;color:#111!important}.top-header,aside,main>header,footer,.back-btn,.report-actions,.assurance-submit-note{display:none!important}.app{display:block!important;padding:0!important}main{padding:0!important}.view{display:block!important}.view>*:not(#test-report-view){display:none!important}#test-report-view{display:block!important}.test-report:not(.active){display:none!important}.enhanced-report{display:block!important;background:#fff!important;color:#111!important;border:0!important;box-shadow:none!important}.enhanced-report *{color:#111!important}.enhanced-report .report-header{background:#0b3d20!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.enhanced-report .report-header *{color:#fff!important}.enhanced-report .report-status{-webkit-print-color-adjust:exact;print-color-adjust:exact}.enhanced-report section,.enhanced-report .report-details,.enhanced-report .report-results{break-inside:avoid}}
+</style>
+<script>
+(function(){
+  'use strict';
+
+  const STORAGE_KEY='kedco_pcm_assurance_records_v2';
+  const $id=id=>document.getElementById(id);
+  const esc=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const round=(value,digits=3)=>String(Number(Number(value).toFixed(digits)));
+  const verdictRank={PASS:0,MARGINAL:1,FAIL:2};
+  const worst=(...items)=>items.sort((a,b)=>verdictRank[b]-verdictRank[a])[0];
+  const upper=(value,pass,marginal)=>{ if(marginal<pass) throw new Error('Marginal upper limit must be greater than or equal to the pass limit.'); return value<=pass+1e-9?'PASS':value<=marginal+1e-9?'MARGINAL':'FAIL'; };
+  const lower=(value,pass,marginal)=>{ if(marginal>pass) throw new Error('Marginal lower limit must be less than or equal to the pass limit.'); return value>=pass-1e-9?'PASS':value>=marginal-1e-9?'MARGINAL':'FAIL'; };
+  const spread=values=>{const mean=values.reduce((a,b)=>a+b,0)/values.length;return mean===0?Infinity:(Math.max(...values)-Math.min(...values))/mean*100};
+  const text=(root,id,label)=>{const node=root.querySelector('#'+id);const value=node?node.value.trim():'';if(!value)throw new Error(label+' is required.');return value};
+  const num=(root,id,label)=>{const raw=text(root,id,label);const value=Number(raw);if(!Number.isFinite(value))throw new Error(label+' must be a valid number.');return value};
+  const extra=(root,key,label)=>{const node=root.querySelector('[data-enhance-key="'+key+'"]');const value=node?String(node.value).trim():'';if(!value)throw new Error(label+' is required.');return value};
+  const extraNum=(root,key,label)=>{const value=Number(extra(root,key,label));if(!Number.isFinite(value))throw new Error(label+' must be a valid number.');return value};
+  const calc=(label,value)=>({label,value});
+
+  const fields={
+    minIR:[['number','passMin','Approved pass minimum','MΩ','1000'],['number','marginalMin','Approved marginal minimum','MΩ','500']],
+    maxError:[['number','passMax','Approved pass limit','%','0.5'],['number','marginalMax','Marginal limit','%','1.0']],
+    phaseSpread:[['number','passSpread','Approved phase-spread limit','%','2'],['number','marginalSpread','Marginal phase-spread limit','%','3']],
+  };
+
+  const MODULES={
+    'submit-ir-test':{key:'transformer-ir',code:'TR-IR',name:'Transformer Insulation Resistance',standard:'IEC 60076 series / approved maintenance procedure',basis:'IEC 60076 does not prescribe one universal field IR acceptance value. Apply temperature-corrected readings, approved minimums and trend/OEM data.',formula:'Minimum measured IR is compared with the engineer-approved Pass and Marginal limits.',extra:fields.minIR},
+    'submit-ttr-test':{key:'transformer-ttr',code:'TR-TTR',name:'Transformer Turns Ratio (TTR)',standard:'IEC 60076-1:2011',basis:'Compare the measured ratio with the nameplate ratio at the recorded tap using the applicable controlled-copy tolerance.',formula:'Ratio error (%) = (Measured ratio − Nameplate ratio) ÷ Nameplate ratio × 100.',extra:fields.maxError},
+    'submit-winding-test':{key:'transformer-winding',code:'TR-WR',name:'Transformer Winding Resistance',standard:'IEC 60076-1:2011 / OEM baseline',basis:'Resistance must be temperature-corrected and compared with factory/commissioning data and an approved phase-spread criterion.',formula:'Phase spread (%) = (Maximum − Minimum) ÷ Mean × 100.',extra:fields.phaseSpread},
+    'submit-oil-test':{key:'transformer-oil',code:'TR-OIL',name:'Oil Breakdown Voltage',standard:'IEC 60156:2025; IEC 60422:2024',basis:'IEC 60156 defines the method; IEC 60422 condition guidance varies by equipment class. The selected action limits must be approved for the asset.',formula:'Mean BDV = Sum of six breakdown readings ÷ 6.',extra:[['number','reading4','Breakdown reading 4','kV',''],['number','reading5','Breakdown reading 5','kV',''],['number','reading6','Breakdown reading 6','kV',''],['number','passMin','Approved mean pass limit','kV','40'],['number','marginalMin','Approved mean marginal limit','kV','30']]},
+    'submit-excitation-test':{key:'transformer-excitation',code:'TR-EX',name:'Magnetization / Excitation',standard:'IEC 60076 series / OEM baseline',basis:'Absolute excitation current and core-loss limits are transformer-specific and must come from approved OEM or baseline data.',formula:'Measured current and loss are each compared with approved Pass and Marginal upper limits.',extra:[['number','currentPass','Pass current limit','A','2'],['number','currentMarginal','Marginal current limit','A','2.5'],['number','lossPass','Pass core-loss limit','W','150'],['number','lossMarginal','Marginal core-loss limit','W','180']]},
+    'submit-vector-test':{key:'transformer-vector',code:'TR-VG',name:'Transformer Vector Group',standard:'IEC 60076-1:2011',basis:'The measured connection symbol and phase displacement must match the nameplate/approved design.',formula:'Exact vector-group match plus absolute phase-shift error within the approved tolerance.',extra:[['text','expectedGroup','Nameplate vector group','','Dyn11'],['number','expectedShift','Expected phase shift','°','30'],['number','shiftTolerance','Approved shift tolerance','°','1']]},
+    'submit-contact-test':{key:'breaker-contact',code:'CB-CR',name:'Circuit Breaker Contact Resistance',standard:'IEC 62271-1 / IEC 62271-100:2021+A1:2024; OEM data',basis:'No single universal field micro-ohm limit applies. Use manufacturer/factory values and an approved pole-spread criterion.',formula:'Evaluate maximum pole resistance and pole spread = (Maximum − Minimum) ÷ Mean × 100.',extra:[['number','passMax','Approved maximum pole resistance','µΩ','100'],['number','marginalMax','Marginal pole resistance','µΩ','120'],...fields.phaseSpread]},
+    'submit-timing-test':{key:'breaker-timing',code:'CB-TM',name:'Circuit Breaker Open / Close Timing',standard:'IEC 62271-100:2021+A1:2024 / OEM reference',basis:'Operating times are breaker-design specific. Use manufacturer reference characteristics at the approved control voltage.',formula:'Worst deviation = max(|Open − target open|, |Close − target close|).',extra:[['number','targetOpen','OEM target opening time','ms','60'],['number','targetClose','OEM target closing time','ms','70'],['number','passDeviation','Approved time deviation','ms','10'],['number','marginalDeviation','Marginal time deviation','ms','20']]},
+    'submit-cb-ir-test':{key:'breaker-ir',code:'CB-IR',name:'Circuit Breaker Insulation Resistance',standard:'IEC 62271-1 / OEM maintenance procedure',basis:'Field IR depends on rated voltage, insulation system, temperature, humidity and baseline condition.',formula:'Measured IR is compared with approved Pass and Marginal minimums.',extra:fields.minIR},
+    'submit-trip-test':{key:'breaker-trip',code:'CB-TRIP',name:'Trip Circuit Supervision',standard:'IEC 62271-100 / approved protection scheme and OEM drawings',basis:'Control-voltage and coil-current limits are scheme/OEM specific. Successful supervision and tripping are mandatory.',formula:'Applied voltage (%) = measured voltage ÷ rated voltage × 100; current is checked against approved limits.',extra:[['number','ratedVoltage','Rated control voltage','V DC','110'],['number','voltagePass','Pass minimum voltage','% rated','85'],['number','voltageMarginal','Marginal minimum voltage','% rated','80'],['number','currentPass','Pass coil-current limit','mA','50'],['number','currentMarginal','Marginal coil-current limit','mA','60'],['select','tripSuccess','Breaker tripped successfully','',['Yes','No']]]},
+    'submit-sf6-test':{key:'breaker-gas',code:'CB-GAS',name:'SF₆ / Gas Density Check',standard:'IEC 62271 series; IEC 60376 / OEM density chart',basis:'Raw pressure is temperature-dependent. Use temperature-compensated density or the OEM pressure-temperature chart and nameplate alarm/lockout settings.',formula:'Margin = corrected indication − OEM alarm/lockout thresholds; a confirmed leak is Fail.',extra:[['number','alarm','OEM low-gas alarm threshold','bar-eq','5.5'],['number','lockout','OEM lockout threshold','bar-eq','5.0']]},
+    'submit-accuracy-test':{key:'meter-accuracy',code:'MT-ACC',name:'Active Energy Meter Accuracy',standard:'IEC 62053-21:2020 / IEC 62053-22; IEC 62052-11:2020',basis:'Maximum permissible error depends on meter class, current, power factor and test condition. Enter the applicable controlled-copy MPE.',formula:'Error (%) = (Meter energy − Reference energy) ÷ Reference energy × 100.',extra:[['select','meterClass','Accuracy class','',['0.2S','0.5S','0.5','1','2']],['number','testCurrent','Test current','% Iref/Ib','100'],['number','powerFactor','Power factor','','1'],...fields.maxError]},
+    'submit-starting-test':{key:'meter-starting',code:'MT-ST',name:'Meter Starting Current',standard:'IEC 62053-21:2020 / IEC 62053-22; applicable test point',basis:'Required starting current depends on meter class and connection. Record the applicable controlled test point.',formula:'Applied starting current (%) = test current ÷ Iref/Ib × 100; continuous registration is mandatory.',extra:[['number','referenceCurrent','Iref / Ib','A','5'],['number','passPercent','Maximum prescribed starting current','% Iref/Ib','0.4'],['number','marginalPercent','Marginal starting current','% Iref/Ib','0.5'],['number','passTime','Pass registration time','s','30'],['number','marginalTime','Marginal registration time','s','45'],['select','registered','Registered continuously','',['Yes','No']]]},
+    'submit-creep-test':{key:'meter-noload',code:'MT-NL',name:'Meter No-load / Creep',standard:'IEC 62053-21:2020 / IEC 62053-22; applicable test point',basis:'The no-load voltage, observation period and permissible output must follow the applicable meter standard and meter constant.',formula:'Observed pulses/revolutions are compared with the approved maximum for the prescribed duration.',extra:[['number','requiredDuration','Required observation duration','min','15'],['number','pulses','Observed pulses / revolutions','count','0'],['number','maxPulses','Approved maximum output','count','0']]},
+    'submit-cable-ir-test':{key:'cable-ir',code:'CA-IR',name:'Cable Insulation Resistance',standard:'IEC 60502-1:2021 / IEC 60502-2:2014+A1:2024; project method',basis:'IEC 60502 does not create one universal field IR limit. Apply cable length, temperature, test voltage, manufacturer and project criteria.',formula:'Measured IR is compared with approved minimums; length-normalised IR = measured IR × cable length.',extra:[['number','length','Cable length','km','1'],...fields.minIR]},
+    'submit-hi-pot-test':{key:'cable-withstand',code:'CA-HV',name:'Cable Voltage Withstand',standard:'IEC 60502-1:2021 / IEC 60502-2:2014+A1:2024; approved test plan',basis:'Required AC/VLF/DC voltage and duration depend on cable rating, test category and project procedure. Confirm method suitability before testing.',formula:'Required voltage and duration must be achieved with no breakdown; leakage is checked only against an approved limit.',extra:[['number','requiredVoltage','Required test voltage','kV','15'],['number','duration','Completed duration','min','15'],['number','requiredDuration','Required duration','min','15'],['number','leakageLimit','Approved leakage limit','µA','10'],['select','breakdown','Breakdown / flashover observed','',['No','Yes']]]},
+    'submit-continuity-test':{key:'cable-continuity',code:'CA-CONT',name:'Cable Conductor Continuity',standard:'IEC 60502 series / approved commissioning procedure',basis:'Continuity is mandatory; conductor-resistance comparison must account for conductor size, length and temperature.',formula:'Phase spread (%) = (Maximum − Minimum) ÷ Mean × 100.',extra:[['number','phaseA','Phase A resistance','Ω',''],['number','phaseB','Phase B resistance','Ω',''],['number','phaseC','Phase C resistance','Ω',''],...fields.phaseSpread]},
+    'submit-phase-id-test':{key:'cable-phase',code:'CA-PH',name:'Cable Phase Identification',standard:'IEC 60502 series / approved drawings and commissioning procedure',basis:'Installed identification and sequence must match approved drawings and system phasing.',formula:'Normalised exact comparison of approved and measured sequences; end-to-end markers must be confirmed.',extra:[['text','expected','Approved phase sequence','','A-B-C'],['select','markers','End-to-end markers confirmed','',['Yes','No']]]},
+  };
+
+  function fieldHtml(def){
+    const [type,key,label,unit,defaultValue]=def;
+    const options=Array.isArray(defaultValue)?defaultValue:null;
+    const control=type==='select'
+      ?'<select data-enhance-key="'+esc(key)+'">'+options.map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>'
+      :'<input data-enhance-key="'+esc(key)+'" type="'+esc(type)+'" value="'+esc(defaultValue||'')+'" step="any" autocomplete="off">';
+    return '<label class="assurance-field"><span>'+esc(label)+' <b>*</b>'+(unit?'<em>'+esc(unit)+'</em>':'')+'</span>'+control+'</label>';
+  }
+
+  function traceHtml(){
+    const engineer=localStorage.getItem('kedco_pcm_engineer')||'';
+    return '<div class="assurance-panel assurance-trace"><h4><i class="fas fa-fingerprint"></i> Audit Traceability</h4><p>Required controlled-record information. Evidence stays on this device; its SHA-256 fingerprint is recorded in the report.</p><div class="trace-grid">'+
+      traceField('assetId','Asset / equipment ID','text','')+traceField('serialNumber','Manufacturer serial number','text','')+traceField('location','Substation / location','text','')+
+      traceField('workOrder','Work order / permit reference','text','')+traceField('engineer','Test engineer','text',engineer)+traceField('instrument','Test instrument / serial','text','')+
+      traceField('calibrationDue','Calibration due date','date','')+
+      '<label class="assurance-field wide"><span>Evidence attachments</span><input data-trace-key="evidence" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.csv,.txt"><small>Optional: maximum 5 files, 5 MB each.</small></label></div></div>';
+  }
+
+  function traceField(key,label,type,value){return '<label class="assurance-field"><span>'+esc(label)+' <b>*</b></span><input data-trace-key="'+esc(key)+'" type="'+esc(type)+'" value="'+esc(value)+'" autocomplete="off"></label>'}
+
+  function installEnhancement(){
+    Object.entries(MODULES).forEach(([buttonId,module])=>{
+      const button=$id(buttonId); if(!button) return;
+      const form=button.closest('.test-form'); if(!form||form.dataset.assuranceReady) return;
+      form.dataset.assuranceReady='true';
+      const header=form.querySelector('.form-header');
+      header.insertAdjacentHTML('afterend','<div class="assurance-standard"><div class="standard-icon">IEC</div><div><strong>'+esc(module.standard)+'</strong><p>'+esc(module.basis)+'</p><code>'+esc(module.formula)+'</code></div></div>');
+      const actions=form.querySelector('.form-actions');
+      actions.insertAdjacentHTML('beforebegin',traceHtml()+'<div class="assurance-panel assurance-criteria"><h4><i class="fas fa-sliders-h"></i> Approved Acceptance Criteria</h4><p>These configurable values must be authorised against controlled IEC copies, OEM documentation, factory results and KEDCO policy before field use.</p><div class="criteria-grid">'+module.extra.map(fieldHtml).join('')+'</div><div class="assurance-submit-note"><i class="fas fa-shield-alt"></i><span>Submitting will calculate a transparent standards-aware verdict and create a locally traceable report without changing other dashboard functions.</span></div></div><div class="assurance-error" hidden></div>');
+      button.textContent='Evaluate & Generate Report';
+      button.addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();handleSubmit(form,module,button)},true);
+    });
+    renderRecent();
+  }
+
+  function parseNominalRatio(raw){
+    const parts=raw.toLowerCase().replace(/\s/g,'').split('/');
+    if(parts.length!==2) throw new Error('Nominal ratio must use a format such as 11kV/415V.');
+    const parsePart=value=>{const match=value.match(/^([0-9.]+)(kv|v)?$/);if(!match)throw new Error('Nominal ratio contains an invalid voltage.');return Number(match[1])*(match[2]==='kv'?1000:1)};
+    const primary=parsePart(parts[0]),secondary=parsePart(parts[1]);if(primary<=0||secondary<=0)throw new Error('Nominal voltages must be greater than zero.');return primary/secondary;
+  }
+
+  function evaluate(form,module){
+    let verdict='FAIL',calculations=[],criteria=[];
+    const e=(key,label)=>extraNum(form,key,label);
+    switch(module.key){
+      case 'transformer-ir':{const values=[num(form,'ir-hv-earth','HV to earth'),num(form,'ir-lv-earth','LV to earth'),num(form,'ir-hv-lv','HV to LV')];const minimum=Math.min(...values),pass=e('passMin','Pass minimum'),marg=e('marginalMin','Marginal minimum');verdict=lower(minimum,pass,marg);calculations=[calc('Minimum measured IR',round(minimum,2)+' MΩ'),calc('Test voltage',round(num(form,'ir-voltage','Test voltage'),2)+' kV'),calc('Ambient temperature',round(num(form,'ir-temp','Ambient temperature'),1)+' °C')];criteria=['Pass ≥ '+pass+' MΩ','Marginal ≥ '+marg+' MΩ and < '+pass+' MΩ'];break}
+      case 'transformer-ttr':{const nominal=parseNominalRatio(text(form,'ttr-nominal','Nominal ratio')),secondary=num(form,'ttr-secondary','Secondary voltage');if(secondary<=0)throw new Error('Secondary voltage must be greater than zero.');const measured=num(form,'ttr-primary','Primary voltage')/secondary,error=(measured-nominal)/nominal*100,pass=e('passMax','Pass limit'),marg=e('marginalMax','Marginal limit');verdict=upper(Math.abs(error),pass,marg);calculations=[calc('Nameplate ratio',round(nominal,5)),calc('Measured ratio',round(measured,5)),calc('Signed ratio error',round(error,3)+'%')];criteria=['Pass |error| ≤ '+pass+'%','Marginal |error| ≤ '+marg+'%'];break}
+      case 'transformer-winding':{const values=[num(form,'winding-hv-a','HV-A'),num(form,'winding-hv-b','HV-B'),num(form,'winding-hv-c','HV-C')],value=spread(values),pass=e('passSpread','Pass spread'),marg=e('marginalSpread','Marginal spread');verdict=upper(value,pass,marg);calculations=[calc('Phase spread',round(value,3)+'%'),calc('Mean resistance',round(values.reduce((a,b)=>a+b,0)/3,4)+' Ω'),calc('Ambient temperature',round(num(form,'winding-temp','Ambient temperature'),1)+' °C')];criteria=['Pass spread ≤ '+pass+'%','Marginal spread ≤ '+marg+'%'];break}
+      case 'transformer-oil':{const values=[num(form,'oil-test1','Reading 1'),num(form,'oil-test2','Reading 2'),num(form,'oil-test3','Reading 3'),e('reading4','Reading 4'),e('reading5','Reading 5'),e('reading6','Reading 6')],mean=values.reduce((a,b)=>a+b,0)/6,pass=e('passMin','Pass mean'),marg=e('marginalMin','Marginal mean');verdict=lower(mean,pass,marg);calculations=[calc('Mean BDV',round(mean,2)+' kV'),calc('Minimum reading',round(Math.min(...values),2)+' kV'),calc('Maximum reading',round(Math.max(...values),2)+' kV')];criteria=['Pass mean ≥ '+pass+' kV','Marginal mean ≥ '+marg+' kV','Limits must match the IEC 60422 equipment class'];break}
+      case 'transformer-excitation':{const current=num(form,'excitation-current','Excitation current'),loss=num(form,'excitation-loss','Core loss'),cv=upper(current,e('currentPass','Pass current'),e('currentMarginal','Marginal current')),lv=upper(loss,e('lossPass','Pass loss'),e('lossMarginal','Marginal loss'));verdict=worst(cv,lv);calculations=[calc('Excitation current',round(current,3)+' A'),calc('Core loss',round(loss,2)+' W'),calc('Applied voltage',round(num(form,'excitation-voltage','Applied voltage'),2)+' V')];criteria=['Current and loss must both satisfy the approved OEM/baseline limits'];break}
+      case 'transformer-vector':{const measured=text(form,'vector-group','Measured vector group').toUpperCase(),expected=extra(form,'expectedGroup','Expected vector group').toUpperCase(),shiftError=Math.abs(num(form,'vector-shift','Measured phase shift')-e('expectedShift','Expected phase shift')),tolerance=e('shiftTolerance','Shift tolerance'),match=measured===expected;verdict=match&&shiftError<=tolerance?'PASS':'FAIL';calculations=[calc('Vector-group match',match?'Yes':'No'),calc('Measured group',measured),calc('Phase-shift error',round(shiftError,2)+'°')];criteria=['Measured group must match '+expected,'Phase-shift error ≤ '+tolerance+'°'];break}
+      case 'breaker-contact':{const values=[num(form,'contact-a','Pole A'),num(form,'contact-b','Pole B'),num(form,'contact-c','Pole C')],maximum=Math.max(...values),poleSpread=spread(values),rv=upper(maximum,e('passMax','Pass resistance'),e('marginalMax','Marginal resistance')),sv=upper(poleSpread,e('passSpread','Pass spread'),e('marginalSpread','Marginal spread'));verdict=worst(rv,sv);calculations=[calc('Maximum pole resistance',round(maximum,2)+' µΩ'),calc('Pole spread',round(poleSpread,2)+'%'),calc('Mean resistance',round(values.reduce((a,b)=>a+b,0)/3,2)+' µΩ')];criteria=['Maximum resistance and phase spread must both satisfy approved criteria'];break}
+      case 'breaker-timing':{const open=num(form,'timing-open','Opening time'),close=num(form,'timing-close','Closing time'),openDev=Math.abs(open-e('targetOpen','Target opening time')),closeDev=Math.abs(close-e('targetClose','Target closing time')),maximum=Math.max(openDev,closeDev),pass=e('passDeviation','Pass deviation'),marg=e('marginalDeviation','Marginal deviation');verdict=upper(maximum,pass,marg);calculations=[calc('Opening-time deviation',round(openDev,2)+' ms'),calc('Closing-time deviation',round(closeDev,2)+' ms'),calc('Worst deviation',round(maximum,2)+' ms')];criteria=['Pass worst deviation ≤ '+pass+' ms','Marginal ≤ '+marg+' ms'];break}
+      case 'breaker-ir':{const value=num(form,'cb-ir-value','Insulation resistance'),pass=e('passMin','Pass minimum'),marg=e('marginalMin','Marginal minimum');verdict=lower(value,pass,marg);calculations=[calc('Measured IR',round(value,2)+' MΩ')];criteria=['Pass ≥ '+pass+' MΩ','Marginal ≥ '+marg+' MΩ'];break}
+      case 'breaker-trip':{const rated=e('ratedVoltage','Rated voltage');if(rated<=0)throw new Error('Rated control voltage must be greater than zero.');const percent=num(form,'trip-voltage','Measured trip voltage')/rated*100,current=num(form,'trip-current','Trip current'),vv=lower(percent,e('voltagePass','Pass voltage'),e('voltageMarginal','Marginal voltage')),cv=upper(current,e('currentPass','Pass current'),e('currentMarginal','Marginal current'));verdict=extra(form,'tripSuccess','Trip result')==='Yes'?worst(vv,cv):'FAIL';calculations=[calc('Applied control voltage',round(percent,2)+'% rated'),calc('Trip current',round(current,2)+' mA'),calc('Successful trip',extra(form,'tripSuccess','Trip result'))];criteria=['Successful trip is mandatory','Voltage and current must satisfy scheme/OEM limits'];break}
+      case 'breaker-gas':{const measured=num(form,'sf6-pressure','Corrected pressure/density'),alarm=e('alarm','Alarm threshold'),lockout=e('lockout','Lockout threshold');if(lockout>=alarm)throw new Error('Lockout threshold must be below the alarm threshold.');verdict=measured>=alarm?'PASS':measured>lockout?'MARGINAL':'FAIL';if(text(form,'sf6-leakage','Leakage result')==='Yes')verdict='FAIL';calculations=[calc('Margin above alarm',round(measured-alarm,3)+' bar-eq'),calc('Margin above lockout',round(measured-lockout,3)+' bar-eq'),calc('Ambient temperature',round(num(form,'sf6-temp','Temperature'),1)+' °C')];criteria=['Pass ≥ alarm threshold with no leak','Marginal between alarm and lockout','Any confirmed leak is Fail'];break}
+      case 'meter-accuracy':{const reference=num(form,'accuracy-ref','Reference energy');if(reference<=0)throw new Error('Reference energy must be greater than zero.');const meter=num(form,'accuracy-meter','Meter energy'),error=(meter-reference)/reference*100,pass=e('passMax','Applicable MPE'),marg=e('marginalMax','Marginal error');verdict=upper(Math.abs(error),pass,marg);calculations=[calc('Signed meter error',round(error,4)+'%'),calc('Absolute meter error',round(Math.abs(error),4)+'%'),calc('Test point',extra(form,'testCurrent','Test current')+'%, PF '+extra(form,'powerFactor','Power factor')+', Class '+extra(form,'meterClass','Meter class'))];criteria=['Pass |error| ≤ applicable MPE ('+pass+'%)','Marginal |error| ≤ '+marg+'%'];break}
+      case 'meter-starting':{const reference=e('referenceCurrent','Reference current');if(reference<=0)throw new Error('Reference current must be greater than zero.');const percent=num(form,'starting-current','Starting current')/reference*100,time=num(form,'starting-time','Registration time'),cv=upper(percent,e('passPercent','Pass starting current'),e('marginalPercent','Marginal starting current')),tv=upper(time,e('passTime','Pass time'),e('marginalTime','Marginal time'));verdict=extra(form,'registered','Registration result')==='Yes'?worst(cv,tv):'FAIL';calculations=[calc('Applied starting current',round(percent,4)+'% Iref/Ib'),calc('Registration time',round(time,2)+' s'),calc('Continuous registration',extra(form,'registered','Registration result'))];criteria=['Continuous registration is mandatory','Starting current and time must satisfy the selected test point'];break}
+      case 'meter-noload':{const duration=num(form,'creep-duration','Observation duration'),required=e('requiredDuration','Required duration'),pulses=e('pulses','Observed output'),max=e('maxPulses','Maximum output');verdict=duration>=required&&pulses<=max?'PASS':duration>=required*.9&&pulses<=max?'MARGINAL':'FAIL';calculations=[calc('Duration completion',round(duration/required*100,1)+'%'),calc('Observed output',pulses+' count'),calc('Approved maximum',max+' count')];criteria=['Observe for ≥ '+required+' min','Output ≤ '+max+' count'];break}
+      case 'cable-ir':{const value=num(form,'cable-ir-value','Cable IR'),length=e('length','Cable length');if(length<=0)throw new Error('Cable length must be greater than zero.');const pass=e('passMin','Pass minimum'),marg=e('marginalMin','Marginal minimum');verdict=lower(value,pass,marg);calculations=[calc('Measured IR',round(value,2)+' MΩ'),calc('Length-normalised IR',round(value*length,2)+' MΩ·km'),calc('Cable length',round(length,3)+' km')];criteria=['Pass measured IR ≥ '+pass+' MΩ','Marginal ≥ '+marg+' MΩ','Confirm whether project criterion is measured or normalised'];break}
+      case 'cable-withstand':{const applied=num(form,'hi-pot-voltage','Applied voltage'),required=e('requiredVoltage','Required voltage'),duration=e('duration','Completed duration'),requiredDuration=e('requiredDuration','Required duration'),leakage=num(form,'hi-pot-leakage','Leakage current'),limit=e('leakageLimit','Leakage limit'),breakdown=extra(form,'breakdown','Breakdown result');if(required<=0||requiredDuration<=0)throw new Error('Required voltage and duration must be greater than zero.');const pass=applied>=required&&duration>=requiredDuration&&leakage<=limit&&breakdown==='No',marginal=breakdown==='No'&&applied>=required*.95&&duration>=requiredDuration*.95&&leakage<=limit;verdict=pass?'PASS':marginal?'MARGINAL':'FAIL';calculations=[calc('Voltage completion',round(applied/required*100,1)+'%'),calc('Duration completion',round(duration/requiredDuration*100,1)+'%'),calc('Leakage margin',round(limit-leakage,3)+' µA')];criteria=['Full specified voltage and duration','Leakage ≤ '+limit+' µA','No breakdown or flashover'];break}
+      case 'cable-continuity':{const continuous=text(form,'continuity-result','Continuity result'),values=[e('phaseA','Phase A resistance'),e('phaseB','Phase B resistance'),e('phaseC','Phase C resistance')],value=spread(values),sv=upper(value,e('passSpread','Pass spread'),e('marginalSpread','Marginal spread'));verdict=continuous==='Yes'?sv:'FAIL';calculations=[calc('All conductors continuous',continuous),calc('Resistance spread',round(value,3)+'%'),calc('Mean resistance',round(values.reduce((a,b)=>a+b,0)/3,4)+' Ω')];criteria=['All conductors must be continuous','Resistance spread must satisfy approved criterion'];break}
+      case 'cable-phase':{const measured=text(form,'phase-sequence','Measured phase sequence').replace(/\s/g,'').toUpperCase(),expected=extra(form,'expected','Approved phase sequence').replace(/\s/g,'').toUpperCase(),markers=extra(form,'markers','Marker confirmation'),match=measured===expected;verdict=match&&markers==='Yes'?'PASS':'FAIL';calculations=[calc('Sequence match',match?'Yes':'No'),calc('Measured sequence',measured),calc('Markers confirmed',markers)];criteria=['Measured sequence must match '+expected,'End-to-end markers must be confirmed'];break}
+      default:throw new Error('Evaluation logic is not configured for this module.');
+    }
+    const messages={PASS:['Results satisfy the recorded acceptance basis.','Release subject to normal engineering review and approval.'],MARGINAL:['Result is inside the alert band but outside the normal pass band.','Repeat the measurement, verify test conditions and instrument uncertainty, then compare with baseline/OEM data before release.'],FAIL:['One or more mandatory criteria are not satisfied.','Keep the equipment out of service or under an approved restriction; investigate, correct and retest.']};
+    return {verdict,calculations,criteria,interpretation:messages[verdict][0],recommendation:messages[verdict][1]};
+  }
+
+  function collectTrace(form){
+    const result={};
+    ['assetId','serialNumber','location','workOrder','engineer','instrument','calibrationDue'].forEach(key=>{const node=form.querySelector('[data-trace-key="'+key+'"]');const value=node?node.value.trim():'';if(!value)throw new Error(node.closest('label').innerText.replace('*','').trim()+' is required.');result[key]=value});
+    localStorage.setItem('kedco_pcm_engineer',result.engineer);return result;
+  }
+
+  async function collectEvidence(form){
+    const input=form.querySelector('[data-trace-key="evidence"]');const files=Array.from(input&&input.files||[]);if(files.length>5)throw new Error('Attach no more than five evidence files.');
+    const evidence=[];for(const file of files){if(file.size>5*1024*1024)throw new Error(file.name+' exceeds the 5 MB evidence limit.');const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());const hash=Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');evidence.push({name:file.name,type:file.type||'unknown',size:file.size,sha256:hash})}return evidence;
+  }
+
+  function collectInputs(form){
+    return Array.from(form.querySelectorAll('input:not([type="file"]),select,textarea')).map(node=>{const label=node.closest('.form-group,.assurance-field');return {label:(label&&label.querySelector('label,span')?label.querySelector('label,span').textContent:node.id||node.dataset.enhanceKey||'Input').replace('*','').trim(),value:node.value}}).filter(item=>item.value!=='');
+  }
+
+  async function handleSubmit(form,module,button){
+    const errorBox=form.querySelector('.assurance-error');errorBox.hidden=true;button.disabled=true;button.textContent='Evaluating…';
+    try{
+      const trace=collectTrace(form),evaluation=evaluate(form,module),evidence=await collectEvidence(form),timestamp=new Date().toISOString(),id=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36),reportNumber='KED-PC&M-'+timestamp.slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
+      const record={id,reportNumber,moduleKey:module.key,moduleCode:module.code,testName:module.name,standard:module.standard,basis:module.basis,formula:module.formula,trace,timestamp,inputs:collectInputs(form),evaluation,evidence};
+      saveRecord(record);generateEnhancedReport(record);renderRecent();
+    }catch(error){errorBox.textContent=error.message||'Unable to evaluate this test.';errorBox.hidden=false;errorBox.scrollIntoView({behavior:'smooth',block:'center'})}
+    finally{button.disabled=false;button.textContent='Evaluate & Generate Report'}
+  }
+
+  function saveRecord(record){let records=[];try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{}records.unshift(record);localStorage.setItem(STORAGE_KEY,JSON.stringify(records.slice(0,50)))}
+  function getRecords(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{return[]}}
+
+  function generateEnhancedReport(record){
+    document.querySelectorAll('.test-report').forEach(report=>report.classList.remove('active'));
+    const host=$id('test-report-view');let report=$id('assurance-report');if(!report){report=document.createElement('div');report.id='assurance-report';report.className='test-report enhanced-report';host.appendChild(report)}
+    const statusClass=record.evaluation.verdict==='PASS'?'status-pass':record.evaluation.verdict==='MARGINAL'?'status-marginal':'status-fail';
+    const measurements=record.inputs.map(item=>'<div class="result-item"><span class="result-label">'+esc(item.label)+'</span><span class="result-value">'+esc(item.value)+'</span></div>').join('');
+    const calculations=record.evaluation.calculations.map(item=>'<div><small>'+esc(item.label)+'</small><strong>'+esc(item.value)+'</strong></div>').join('');
+    const criteria=record.evaluation.criteria.map(item=>'<li>'+esc(item)+'</li>').join('');
+    const evidence=record.evidence.length?record.evidence.map(item=>'<div class="evidence-row"><strong>'+esc(item.name)+'</strong><span>'+round(item.size/1024,1)+' KB</span><code>SHA-256 '+esc(item.sha256)+'</code></div>').join(''):'<p class="muted">No evidence attachment submitted.</p>';
+    report.innerHTML='<div class="report-header"><h3>'+esc(record.moduleCode)+' — '+esc(record.testName)+'</h3><p>Controlled equipment test report · '+esc(new Date(record.timestamp).toLocaleString())+'</p><span class="report-number">'+esc(record.reportNumber)+'</span></div><div class="report-details"><table><tr><th>Asset / Equipment ID</th><td>'+esc(record.trace.assetId)+'</td><th>Serial Number</th><td>'+esc(record.trace.serialNumber)+'</td></tr><tr><th>Location</th><td>'+esc(record.trace.location)+'</td><th>Work Order</th><td>'+esc(record.trace.workOrder)+'</td></tr><tr><th>Test Engineer</th><td>'+esc(record.trace.engineer)+'</td><th>Instrument / Calibration</th><td>'+esc(record.trace.instrument)+' · due '+esc(record.trace.calibrationDue)+'</td></tr></table><div class="standard-basis"><strong>'+esc(record.standard)+'</strong><p>'+esc(record.basis)+'</p><code>'+esc(record.formula)+'</code><ul class="criteria-list">'+criteria+'</ul></div></div><div class="report-results"><h4>Recorded Inputs</h4>'+measurements+'<h4 style="margin-top:20px">Calculated Results</h4><div class="calculation-grid">'+calculations+'</div></div><div class="report-conclusion"><h4>Engineering Interpretation</h4><p>'+esc(record.evaluation.interpretation)+'</p><div class="recommendation-box"><strong>Recommended action</strong><p>'+esc(record.evaluation.recommendation)+'</p></div><h4 style="margin-top:20px">Evidence Integrity</h4>'+evidence+'</div><div class="report-status '+statusClass+'"><i class="fas fa-'+(record.evaluation.verdict==='PASS'?'check':record.evaluation.verdict==='MARGINAL'?'exclamation':'times')+'-circle"></i> TEST '+esc(record.evaluation.verdict)+'</div><div class="report-actions"><button class="btn-test btn-outline" id="assurance-back"><i class="fas fa-arrow-left"></i> Back to Tests</button><button class="btn-test btn-export" id="assurance-json"><i class="fas fa-file-code"></i> JSON</button><button class="btn-test btn-export" id="assurance-csv"><i class="fas fa-file-csv"></i> CSV</button><button class="btn-test btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print / Save PDF</button></div>';
+    report.classList.add('active');
+    [$id('dashboard-view'),$id('test-category-view'),$id('test-form-view'),$id('test-report-view')].forEach(view=>view&&view.classList.add('hidden'));$id('test-report-view').classList.remove('hidden');
+    $id('assurance-back').onclick=()=>{$id('test-report-view').classList.add('hidden');$id('test-category-view').classList.remove('hidden')};
+    $id('assurance-json').onclick=()=>download(JSON.stringify(record,null,2),record.reportNumber+'.json','application/json');
+    $id('assurance-csv').onclick=()=>downloadCsv(record);
+    report.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type})),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
+  function downloadCsv(record){const rows=[['Report number',record.reportNumber],['Test',record.moduleCode+' — '+record.testName],['Verdict',record.evaluation.verdict],['Asset',record.trace.assetId],['Serial',record.trace.serialNumber],['Location',record.trace.location],['Work order',record.trace.workOrder],['Engineer',record.trace.engineer],['Timestamp',record.timestamp],...record.inputs.map(item=>['Input: '+item.label,item.value]),...record.evaluation.calculations.map(item=>['Calculation: '+item.label,item.value])];const csv=rows.map(row=>row.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');download(csv,record.reportNumber+'.csv','text/csv')}
+
+  function renderRecent(){
+    const host=document.querySelector('.recent-tests');if(!host)return;const records=getRecords().slice(0,8);host.innerHTML='<h3><i class="fas fa-history"></i> Recent Standards-Assured Tests</h3>'+(records.length?'<div style="overflow:auto"><table class="assurance-history"><thead><tr><th>Report</th><th>Asset / Test</th><th>Engineer</th><th>Time</th><th>Verdict</th></tr></thead><tbody>'+records.map(record=>'<tr><td><strong>'+esc(record.reportNumber)+'</strong><small>'+esc(record.trace.workOrder)+'</small></td><td><strong>'+esc(record.trace.assetId)+'</strong><small>'+esc(record.moduleCode)+' · '+esc(record.testName)+'</small></td><td>'+esc(record.trace.engineer)+'</td><td>'+esc(new Date(record.timestamp).toLocaleString())+'</td><td><span class="mini-verdict '+record.evaluation.verdict.toLowerCase()+'">'+esc(record.evaluation.verdict)+'</span></td></tr>').join('')+'</tbody></table></div>':'<p>No standards-assured tests have been recorded on this device.</p>')
+  }
+
+  document.addEventListener('DOMContentLoaded',installEnhancement);
+})();
+</script>
+</body>
+</html>
