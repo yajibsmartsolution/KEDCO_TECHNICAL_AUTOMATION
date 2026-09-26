@@ -15,5 +15,6 @@ cloud data/
 # Credential/export documents
 KEDCO_Login_Details.docx
 KEDCO_Login_Details_Professional.docx
+KEDCO-trial-credentials-*.csv
 
 *.log
